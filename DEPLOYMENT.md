@@ -1,0 +1,139 @@
+# Deployment checklist — Railway (API) + Vercel (UI) + iOS Shortcut
+
+Use this after local smoke tests pass (`/health`, `/api/diagnostics/assemblyai`, webhook → tools in Supabase).
+
+---
+
+## Part 1 — Railway (FastAPI backend)
+
+### 1.1 Create the service
+
+1. Go to [railway.app](https://railway.app) → sign in (GitHub is fine).
+2. **New project** → **Deploy from GitHub repo** → pick `insta_reels_tools_logger` (or your fork).
+3. Railway creates a service. Open it → **Settings**.
+4. Set **Root Directory** to: `backend`  
+   (Monorepo: code lives in `backend/`, not repo root.)
+
+### 1.2 Use Docker build (recommended)
+
+This repo includes `backend/Dockerfile` so Railway uses **Docker** instead of guessing `pip`:
+
+1. In the same service → **Settings** → **Build** (or **Deploy** section, depending on UI).
+2. Set **Dockerfile path** to `Dockerfile` (path is relative to **Root Directory** `backend`, so it picks up `backend/Dockerfile`).
+3. If Railway offers “Builder”, choose **Dockerfile** / disable Nixpacks auto-detect if it conflicts.
+
+### 1.3 Environment variables
+
+In the service → **Variables** → add (same values as local `backend/.env`):
+
+| Name | Notes |
+|------|--------|
+| `SUPABASE_URL` | Supabase project URL |
+| `SUPABASE_SERVICE_KEY` | **Service role** secret (`sb_secret_...`), not anon |
+| `ASSEMBLYAI_API_KEY` | AssemblyAI dashboard |
+| `ANTHROPIC_API_KEY` | Anthropic |
+| `WEBHOOK_SECRET` | **You choose**; must match iOS Shortcut `secret` |
+| `TELEGRAM_BOT_TOKEN` | Optional; leave empty if unused |
+
+Optional later:
+
+| Name | Notes |
+|------|--------|
+| `CORS_ALLOW_ORIGINS` | Not wired in code yet; CORS is `*` in v1 |
+
+Redeploy after saving variables.
+
+### 1.4 Public URL
+
+1. Service → **Settings** → **Networking** → **Generate domain** (or add custom domain).
+2. Copy the HTTPS base URL, e.g. `https://your-service.up.railway.app`  
+   **No trailing slash** when you paste into Vercel.
+
+### 1.5 Verify backend live
+
+Replace `BASE` with your Railway URL:
+
+```bash
+curl -s "$BASE/health"
+# expect: {"status":"ok"}
+
+curl -s "$BASE/api/diagnostics/assemblyai" | python3 -m json.tool
+# expect: "ok": true
+
+curl -s -X POST "$BASE/api/webhook/reel" \
+  -H "Content-Type: application/json" \
+  -d '{"url":"https://www.instagram.com/reel/SHORTCODE/","secret":"YOUR_WEBHOOK_SECRET"}'
+# expect: {"status":"processing"} or already_processed
+```
+
+---
+
+## Part 2 — Vercel (React frontend)
+
+### 2.1 Import project
+
+1. Go to [vercel.com](https://vercel.com) → **Add New** → **Project** → import the same GitHub repo.
+
+### 2.2 Configure the app
+
+1. **Root Directory**: `frontend`  
+2. **Framework Preset**: Vite (auto-detected).
+3. **Build Command**: `npm run build` (default).
+4. **Output Directory**: `dist` (Vite default).
+
+### 2.3 Environment variable (required)
+
+**Settings** → **Environment Variables** (Production + Preview if you want):
+
+| Name | Value |
+|------|--------|
+| `VITE_API_BASE_URL` | `https://your-service.up.railway.app` |
+
+- **No** trailing slash.
+- Must be the **exact** Railway HTTPS origin your browser will call (CORS is open in v1, but wrong host = wrong API).
+
+Redeploy after adding the variable (or trigger a new deployment).
+
+### 2.4 Verify UI
+
+1. Open the Vercel URL.
+2. Feed should load tools (same Supabase as backend).
+3. **Watch Reel** should open Instagram in a new tab.
+
+---
+
+## Part 3 — iOS Shortcut (Share Sheet → webhook)
+
+1. **Shortcuts** → **+** → name it e.g. `Track AI Reels`.
+2. First block: **Receive** … **URLs** from **Share Sheet**; **Allow Running When Not Connected** optional.
+3. Add **Get Shortcut Input** (or use provided URL from share sheet).
+4. Add **Get Contents of URL**:
+   - **URL**: `https://your-service.up.railway.app/api/webhook/reel`
+   - **Method**: POST
+   - **Request Body**: JSON
+   - **Add new field** `url` → map to **Shortcut Input** (the shared Reel link).
+   - **Add new field** `secret` → type your **`WEBHOOK_SECRET`** (same as Railway).
+5. Add **Show Result** or **Show Notification** so you see `processing` / `already_processed` / errors.
+6. Shortcut details → **Show in Share Sheet** → enable.
+
+**Test:** Open Instagram → share a Reel → your shortcut → confirm `processing`, then check Supabase / Vercel feed.
+
+---
+
+## Part 4 — Optional cleanups
+
+- **Duplicate Reel URLs:** `videos.instagram_url` is unique on the full string; prefer always posting the **canonical** URL (e.g. strip `?igsh=` if you want one row per reel).
+- **Tighten CORS:** Later, set `allow_origins` in `main.py` to your Vercel domain only.
+- **Railway sleep / limits:** Free tier may sleep; first request after idle can be slow.
+
+---
+
+## Quick reference
+
+| Piece | URL / command |
+|-------|----------------|
+| Health | `GET https://<railway>/health` |
+| Webhook | `POST https://<railway>/api/webhook/reel` |
+| Frontend env | `VITE_API_BASE_URL=https://<railway>` |
+
+If anything fails, check **Railway deploy logs** (build + runtime) and **browser DevTools → Network** on the Vercel site for the failing request host.

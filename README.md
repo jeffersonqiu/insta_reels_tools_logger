@@ -188,17 +188,13 @@ npm test
 
 ## 9) Deployment
 
-### Backend -> Railway
+**Step-by-step (Railway + Vercel + iOS Shortcut):** see **[DEPLOYMENT.md](./DEPLOYMENT.md)** in the repo root.
 
-- Use `backend/Procfile`:
-  - `web: uv run uvicorn main:app --host 0.0.0.0 --port $PORT`
-- Set backend env vars in Railway service.
+Summary:
 
-### Frontend -> Vercel
-
-- Build command: `npm run build`
-- Output directory: `dist`
-- Set env var: `VITE_API_BASE_URL=https://your-railway-backend-url`
+- **Railway:** Root directory `backend`, use `backend/Dockerfile`, set all env vars from `.env.example`.
+- **Vercel:** Root directory `frontend`, `VITE_API_BASE_URL=https://<your-railway-host>` (no trailing slash).
+- **Procfile** (non-Docker): `web: uv run uvicorn main:app --host 0.0.0.0 --port $PORT`
 
 ## v2 Roadmap
 
