@@ -1,0 +1,73 @@
+import { useState } from 'react'
+
+import client from '../api/client'
+import StatusButton from './StatusButton'
+
+function ToolCard({ tool, onStatusChanged }) {
+  const [status, setStatus] = useState(tool.status || 'to_explore')
+  const [isSaving, setIsSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  const updateStatus = async (nextStatus) => {
+    const previous = status
+    setStatus(nextStatus)
+    setIsSaving(true)
+    setError('')
+    try {
+      await client.patch(`/api/tools/${tool.id}/interaction`, {
+        status: nextStatus,
+        notes: tool.notes || null,
+      })
+      onStatusChanged?.(tool.id, nextStatus)
+    } catch (_err) {
+      try {
+        await client.patch(`/api/tools/${tool.id}/interaction`, {
+          status: nextStatus,
+          notes: tool.notes || null,
+        })
+        onStatusChanged?.(tool.id, nextStatus)
+      } catch (_err2) {
+        setStatus(previous)
+        setError('Update failed. Please try again.')
+      }
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  return (
+    <article className="rounded-xl border border-gray-800 bg-gray-900 p-4">
+      <h3 className="text-lg font-semibold">{tool.name}</h3>
+      <p className="mt-1 text-xs text-gray-500">First seen: {tool.first_seen_date || 'Unknown'}</p>
+      <p className="mt-3 text-sm text-gray-200">{tool.functionality || 'No functionality captured yet.'}</p>
+      <p className="mt-2 text-sm italic text-gray-400">
+        Solves: {tool.problem_solved || 'No problem statement captured yet.'}
+      </p>
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        {(tool.tags || []).map((tag) => (
+          <span key={`${tool.id}-${tag}`} className="rounded-full bg-violet-500/20 px-2 py-1 text-xs text-violet-300">
+            {tag}
+          </span>
+        ))}
+      </div>
+      <p className="mt-3 text-xs text-gray-500">Seen in {(tool.source_video_ids || []).length} video(s)</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <StatusButton variant="success" onClick={() => updateStatus('implemented')}>
+          ✅ Mark Implemented
+        </StatusButton>
+        <StatusButton variant="danger" onClick={() => updateStatus('not_interested')}>
+          🚫 Not Interested
+        </StatusButton>
+        {status !== 'to_explore' && (
+          <StatusButton variant="accent" onClick={() => updateStatus('to_explore')}>
+            🔖 To Explore
+          </StatusButton>
+        )}
+      </div>
+      {isSaving && <p className="mt-2 text-xs text-gray-500">Saving...</p>}
+      {error && <p className="mt-2 text-xs text-rose-400">{error}</p>}
+    </article>
+  )
+}
+
+export default ToolCard
