@@ -8,6 +8,13 @@ function ToolCard({ tool, onStatusChanged }) {
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
 
+  // Prefer join-table-backed list (matches Watch Reel); avoid stale source_video_ids[] after API fix.
+  const seenInVideoCount = Array.isArray(tool.source_videos)
+    ? tool.source_videos.length
+    : typeof tool.video_count === 'number'
+      ? tool.video_count
+      : (tool.source_video_ids || []).length
+
   const updateStatus = async (nextStatus) => {
     const previous = status
     setStatus(nextStatus)
@@ -50,7 +57,7 @@ function ToolCard({ tool, onStatusChanged }) {
           </span>
         ))}
       </div>
-      <p className="mt-3 text-xs text-gray-500">Seen in {tool.video_count ?? (tool.source_video_ids || []).length} video(s)</p>
+      <p className="mt-3 text-xs text-gray-500">Seen in {seenInVideoCount} video(s)</p>
       {(tool.source_videos || []).length > 0 && (
         <div className="mt-2 flex flex-wrap gap-2">
           {tool.source_videos.map((sv, i) => (

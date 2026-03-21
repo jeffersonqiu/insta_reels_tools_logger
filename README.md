@@ -124,7 +124,8 @@ npm run dev
 
 1. **Confirm the browser talks to the backend you think** — open DevTools → Network, reload `/`, and check the request host for `GET /api/tools`. It must match where you run FastAPI (usually `localhost:8000`). If `VITE_API_BASE_URL` points at **Railway/Vercel**, deploy or pull latest code there, or set `.env.local` to `http://localhost:8000` and **restart** `npm run dev` (Vite reads env only at startup).
 2. **Hard refresh** the tab: macOS **Cmd+Shift+R** (or disable cache in DevTools and reload).
-3. **Restart uvicorn** after pulling backend changes (`--reload` usually picks up `routers/tools.py` automatically).
+3. **Restart the Vite dev server** after `git pull` or API/frontend changes: stop `npm run dev` (**Ctrl+C**) and start it again — Vite only reads `.env.local` at startup, and a full restart avoids a stuck HMR bundle.
+4. **Restart uvicorn** after pulling backend changes (`--reload` usually picks up `routers/tools.py` automatically).
 
 ### “Seen in 2 videos” but only one Reel
 
