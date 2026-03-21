@@ -1,0 +1,174 @@
+# AI Tools Tracker
+
+Personal full-stack tracker for AI tools discovered in Instagram Reels.
+
+## What It Does
+
+- Accepts a Reel URL through webhook (and optional Telegram bot fallback).
+- Downloads audio with `yt-dlp`.
+- Transcribes with AssemblyAI.
+- Extracts structured tool records with Claude.
+- Deduplicates and merges updates into Supabase.
+- Shows tools in a mobile-first React UI with status tracking.
+
+## Tech Stack
+
+- Backend: FastAPI + Python 3.12 + `uv`
+- DB: Supabase Postgres
+- Frontend: React + Vite + Tailwind CSS
+- Hosting: Railway (backend) + Vercel (frontend)
+
+## Repository Layout
+
+- `backend/`: API, ingestion, extraction, deduplication, migrations
+- `frontend/`: UI for feed and video detail
+- `CLAUDE.md`: canonical project instructions for Claude Code
+- `agent.md`: pointer file for generic agents
+
+## 1) Prerequisites
+
+- Python 3.12+ available (project pins to 3.12 in backend)
+- Node.js 18+
+- Accounts:
+  - Supabase
+  - Anthropic API
+  - AssemblyAI
+  - Railway
+  - Vercel
+  - Telegram Bot (optional fallback)
+
+## 2) Supabase Setup (From Scratch)
+
+1. Create a new Supabase project.
+2. Open **SQL Editor** and run `backend/db/migrations/001_initial.sql`.
+3. Enable RLS on all app tables (`videos`, `tools`, `video_tools`, `user_interactions`).
+4. Create permissive policy for service-role-backed backend usage (personal app pattern).
+   - Example policy shape:
+     - Policy name: `service_role_all`
+     - Action: all (`select`, `insert`, `update`, `delete`)
+     - Using / Check: `auth.role() = 'service_role'`
+5. Copy:
+   - Project URL -> `SUPABASE_URL`
+   - Service role key -> `SUPABASE_SERVICE_KEY`
+
+## 3) Backend Setup
+
+```bash
+cd backend
+cp .env.example .env
+```
+
+Fill `backend/.env`:
+
+```env
+SUPABASE_URL=
+SUPABASE_SERVICE_KEY=
+ASSEMBLYAI_API_KEY=
+ANTHROPIC_API_KEY=
+TELEGRAM_BOT_TOKEN=
+WEBHOOK_SECRET=
+```
+
+Run backend:
+
+```bash
+uv run uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+Health check:
+
+```bash
+curl http://localhost:8000/health
+```
+
+## 4) Frontend Setup
+
+Create `frontend/.env.local`:
+
+```env
+VITE_API_BASE_URL=http://localhost:8000
+```
+
+Run frontend:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+## 5) API Smoke Test (Webhook)
+
+```bash
+curl -X POST http://localhost:8000/api/webhook/reel \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://www.instagram.com/reel/REEL_ID/",
+    "secret": "YOUR_WEBHOOK_SECRET"
+  }'
+```
+
+Expected:
+- First time: `{"status":"processing"}`
+- Duplicate URL: `{"status":"already_processed"}`
+
+## 6) iOS Shortcut Setup
+
+1. Open Shortcuts app and create shortcut: `Track AI Reels`.
+2. Configure first block:
+   - Receive input: `URLs`
+   - Source: `Share Sheet`
+   - If no input: `Continue`
+3. Add **Get Shortcut Input**.
+4. Add **Get Contents of URL**:
+   - URL: `https://your-backend-domain/api/webhook/reel`
+   - Method: `POST`
+   - Body: `JSON`
+   - Field `url`: Shortcut Input
+   - Field `secret`: your webhook secret
+5. Add **Show Content**.
+6. Enable **Show in Share Sheet** in shortcut details.
+
+## 7) Optional Telegram Fallback
+
+Telegram integration is optional and only needed if iOS Shortcut is not enough.
+
+- Bot logic file: `backend/services/telegram_bot.py`
+- It detects `instagram.com/reel/...` links and forwards them to webhook.
+
+## 8) Tests
+
+Backend:
+
+```bash
+cd backend
+uv run pytest
+```
+
+Frontend:
+
+```bash
+cd frontend
+npm test
+```
+
+## 9) Deployment
+
+### Backend -> Railway
+
+- Use `backend/Procfile`:
+  - `web: uv run uvicorn main:app --host 0.0.0.0 --port $PORT`
+- Set backend env vars in Railway service.
+
+### Frontend -> Vercel
+
+- Build command: `npm run build`
+- Output directory: `dist`
+- Set env var: `VITE_API_BASE_URL=https://your-railway-backend-url`
+
+## v2 Roadmap
+
+- Add persistent retry queue abstraction (`JobStore` + `RetryPolicy`) beyond in-process retry.
+- Add auth middleware for secured `/api` access if app expands beyond personal use.
+- Add configurable UI density preference toggle.
+- Add optional tag governance flow for novel tags.
