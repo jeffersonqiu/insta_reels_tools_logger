@@ -3,17 +3,42 @@ import { Link, Route, Routes } from 'react-router-dom'
 import Feed from './pages/Feed'
 import VideoDetail from './pages/VideoDetail'
 
+function LogoMark({ className = 'h-9 w-9' }) {
+  return (
+    <svg className={className} viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+      <rect width="512" height="512" rx="112" fill="#030712" />
+      <rect x="88" y="118" width="336" height="72" rx="20" fill="#8b5cf6" />
+      <rect x="88" y="220" width="256" height="72" rx="20" fill="#7c3aed" opacity=".92" />
+      <rect x="88" y="322" width="304" height="72" rx="20" fill="#a78bfa" opacity=".88" />
+      <circle cx="392" cy="152" r="28" fill="#c4b5fd" opacity=".95" />
+    </svg>
+  )
+}
+
 function App() {
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100">
-      <header className="border-b border-gray-800 bg-gray-950/80 px-4 py-3 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between">
-          <Link to="/" className="text-lg font-semibold text-violet-400">
-            AI Tools Tracker
+    <div className="min-h-screen text-ink">
+      <header className="sticky top-0 z-20 border-b border-stroke/80 bg-canvas-deep/75 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3.5">
+          <Link
+            to="/"
+            className="group flex items-center gap-3 rounded-xl outline-none ring-accent/0 transition focus-visible:ring-2 focus-visible:ring-accent"
+          >
+            <span className="relative shrink-0 shadow-glow transition duration-300 group-hover:scale-[1.03] group-hover:shadow-[0_0_32px_-8px_rgba(167,139,250,0.55)]">
+              <LogoMark />
+            </span>
+            <span className="flex flex-col leading-tight">
+              <span className="font-display text-lg font-semibold tracking-tight text-ink transition group-hover:text-accent">
+                AI Tools Tracker
+              </span>
+              <span className="font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-ink-faint">
+                From reels → your stack
+              </span>
+            </span>
           </Link>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-6xl px-4 py-6">
+      <main className="mx-auto w-full max-w-6xl px-4 py-8 md:py-10">
         <Routes>
           <Route path="/" element={<Feed />} />
           <Route path="/videos/:id" element={<VideoDetail />} />

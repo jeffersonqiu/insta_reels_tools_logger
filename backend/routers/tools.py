@@ -1,12 +1,14 @@
 import datetime as dt
 from urllib.parse import urlparse, urlunparse
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Response
 
 from db.client import get_supabase
 from models.schemas import ToolInteractionPatch
 
 router = APIRouter(prefix="/tools", tags=["tools"])
+
+_NO_STORE = {"Cache-Control": "no-store, max-age=0", "Pragma": "no-cache"}
 
 
 def _reel_canonical_key(instagram_url: str) -> str:
@@ -25,11 +27,7 @@ def _reel_canonical_key(instagram_url: str) -> str:
     return urlunparse((scheme, host, path, "", "", ""))
 
 
-@router.get("")
-def list_tools(status: str = Query(default="all")):
-    if status not in {"to_explore", "implemented", "not_interested", "all"}:
-        raise HTTPException(status_code=400, detail="Invalid status filter")
-
+def _build_merged_tools() -> list[dict]:
     supabase = get_supabase()
     tools = supabase.table("tools").select("*").order("first_seen_date", desc=True).execute().data or []
     interactions = supabase.table("user_interactions").select("*").execute().data or []
@@ -58,17 +56,62 @@ def list_tools(status: str = Query(default="all")):
     for t in tools:
         interaction = interaction_by_tool.get(t["id"], {})
         source_videos = videos_by_tool.get(t["id"], [])
-        merged_item = {
-            **t,
-            "status": interaction.get("status", "to_explore"),
-            "notes": interaction.get("notes"),
-            "updated_at": interaction.get("updated_at"),
-            "source_videos": source_videos,
-            "video_count": len(source_videos),
-        }
-        if status == "all" or merged_item["status"] == status:
-            merged.append(merged_item)
+        merged.append(
+            {
+                **t,
+                "status": interaction.get("status", "to_explore"),
+                "notes": interaction.get("notes"),
+                "updated_at": interaction.get("updated_at"),
+                "source_videos": source_videos,
+                "video_count": len(source_videos),
+            }
+        )
     return merged
+
+
+def _apply_cache_headers(response: Response) -> None:
+    for k, v in _NO_STORE.items():
+        response.headers[k] = v
+
+
+@router.get("/counts")
+def tool_status_counts(response: Response):
+    """Tab badge counts across all tools (not filtered by current tab)."""
+    _apply_cache_headers(response)
+    merged = _build_merged_tools()
+    counts = {"all": len(merged), "to_explore": 0, "implemented": 0, "not_interested": 0}
+    for m in merged:
+        s = m.get("status") or "to_explore"
+        if s in ("to_explore", "implemented", "not_interested"):
+            counts[s] += 1
+    return counts
+
+
+@router.get("/tags")
+def list_all_tags(response: Response):
+    """Distinct tags from all tools for filter UI."""
+    _apply_cache_headers(response)
+    supabase = get_supabase()
+    rows = supabase.table("tools").select("tags").execute().data or []
+    seen: set[str] = set()
+    for row in rows:
+        for tag in row.get("tags") or []:
+            if tag and isinstance(tag, str) and tag.strip():
+                seen.add(tag.strip())
+    return sorted(seen, key=str.lower)
+
+
+@router.get("")
+def list_tools(response: Response, status: str = Query(default="all")):
+    if status not in {"to_explore", "implemented", "not_interested", "all"}:
+        raise HTTPException(status_code=400, detail="Invalid status filter")
+
+    _apply_cache_headers(response)
+
+    merged = _build_merged_tools()
+    if status == "all":
+        return merged
+    return [m for m in merged if m["status"] == status]
 
 
 @router.patch("/{tool_id}/interaction")

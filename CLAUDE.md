@@ -300,7 +300,9 @@ Steps:
 
 ### 2.9 `routers/tools.py`
 
-- `GET /api/tools` — return all tools joined with `user_interactions` status. Query param `?status=to_explore|implemented|not_interested|all` (default: `all`). Sort by `first_seen_date` descending.
+- `GET /api/tools` — return tools joined with `user_interactions` status. Query `?status=to_explore|implemented|not_interested|all` (default: `all`). Sort by `first_seen_date` descending. Response headers: `Cache-Control: no-store` (avoids stale PWA caches).
+- `GET /api/tools/counts` — `{ to_explore, implemented, not_interested, all }` for tab badges (always global counts).
+- `GET /api/tools/tags` — sorted list of distinct tag strings from all tools (for filter UI).
 - `PATCH /api/tools/{tool_id}/interaction` — update `status` and optional `notes`. Touch `updated_at`.
 
 ### 2.10 `routers/videos.py`
@@ -345,10 +347,12 @@ npm install axios react-router-dom
 
 ### 3.3 Feed Page (`pages/Feed.jsx`)
 
-- Fetch from `GET /api/tools?status={activeTab}`
-- FilterTabs at the top: `To Explore` (default) / `Implemented` / `Not Interested` / `All` — with count badges
-- Grid of ToolCards: 1 column on mobile, 2 columns on desktop
-- Empty state message when no results
+- Fetch list from `GET /api/tools` with `params: { status: activeTab }`
+- Fetch tab counts from `GET /api/tools/counts` (not derived from the filtered list)
+- Optional tag filter: load `GET /api/tools/tags`, client-side filter current list (**any** selected tag matches)
+- After status change: remove tool from list when it no longer matches `activeTab`; refresh counts
+- FilterTabs + tag chips + responsive ToolCard grid (dense: up to 3 columns on large screens)
+- Empty state when no results or tag filter excludes everything
 
 ### 3.4 ToolCard Component (`components/ToolCard.jsx`)
 

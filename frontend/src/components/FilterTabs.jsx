@@ -9,23 +9,33 @@ const TABS = [
 
 function FilterTabs({ activeTab, counts, onChange }) {
   return (
-    <div className="mb-4 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-      {TABS.map((tab) => {
-        const selected = activeTab === tab.key
-        return (
-          <button
-            key={tab.key}
-            onClick={() => onChange(tab.key)}
-            className={`rounded-md border px-3 py-2 text-sm ${
-              selected
-                ? 'border-violet-500 bg-violet-500/20 text-violet-300'
-                : 'border-gray-700 bg-gray-900 text-gray-300 hover:bg-gray-800'
-            }`}
-          >
-            {tab.label} <span className="ml-1 text-xs text-gray-400">({counts[tab.key] ?? 0})</span>
-          </button>
-        )
-      })}
+    <div className="mb-8 animate-fade-up rounded-2xl border border-stroke bg-elevated/80 p-1.5 shadow-card backdrop-blur-md md:inline-flex md:flex-wrap">
+      <div className="grid grid-cols-2 gap-1 sm:grid-cols-4 md:flex md:flex-wrap">
+        {TABS.map((tab) => {
+          const selected = activeTab === tab.key
+          return (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => onChange(tab.key)}
+              className={`relative rounded-xl px-4 py-2.5 text-left text-sm font-medium transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-accent md:text-center ${
+                selected
+                  ? 'bg-accent-dim text-accent shadow-[inset_0_0_0_1px_rgba(196,181,253,0.35)]'
+                  : 'text-ink-muted hover:bg-white/[0.04] hover:text-ink'
+              }`}
+            >
+              <span className="block">{tab.label}</span>
+              <span
+                className={`mt-0.5 block font-mono text-[11px] font-semibold tabular-nums ${
+                  selected ? 'text-accent/90' : 'text-ink-faint'
+                }`}
+              >
+                {counts[tab.key] ?? 0}
+              </span>
+            </button>
+          )
+        })}
+      </div>
     </div>
   )
 }
