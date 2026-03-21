@@ -1,0 +1,7 @@
+# Optional Railway config (repo root). Build still uses the root `Dockerfile` when
+# the service uses the full repo (no “Root directory” override).
+# https://docs.railway.com/reference/config-as-code
+
+[deploy]
+healthcheckPath = "/health"
+healthcheckTimeout = 120

@@ -1,0 +1,13 @@
+.git
+.cursor
+frontend
+DEPLOYMENT.md
+README.md
+CLAUDE.md
+agent.md
+**/.venv
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+backend/.env
+*.md

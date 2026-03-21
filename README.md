@@ -192,7 +192,7 @@ npm test
 
 Summary:
 
-- **Railway:** Root directory `backend`, use `backend/Dockerfile`, set all env vars from `.env.example`.
+- **Railway:** Either leave **root directory empty** and use the repo-root **`Dockerfile`** (builds `backend/`), **or** set root directory to **`backend`** and use **`backend/Dockerfile`**. See **DEPLOYMENT.md** if Railpack fails on the monorepo.
 - **Vercel:** Root directory `frontend`, `VITE_API_BASE_URL=https://<your-railway-host>` (no trailing slash).
 - **Procfile** (non-Docker): `web: uv run uvicorn main:app --host 0.0.0.0 --port $PORT`
 

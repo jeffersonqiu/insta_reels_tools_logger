@@ -6,21 +6,39 @@ Use this after local smoke tests pass (`/health`, `/api/diagnostics/assemblyai`,
 
 ## Part 1 — Railway (FastAPI backend)
 
+### Why Railpack fails on first import
+
+If you see **`Railpack could not determine how to build the app`** and the log lists **`backend/`**, **`frontend/`**, and docs at the repo root, Railway is building from the **monorepo root** with **Railpack** — it does not see a single Node/Python app there.
+
+**Fix (pick one):**
+
+| Approach | Root directory (service setting) | Docker image |
+|----------|----------------------------------|--------------|
+| **A — Recommended** | **Leave empty** (repo root) | Uses **`Dockerfile`** at repo root (builds `backend/`) |
+| **B — Alternate** | **`backend`** | Uses **`backend/Dockerfile`** (context = `backend/`) |
+
+After **git pull** of the latest repo, **Option A** is the simplest: do **not** set a root directory, redeploy — Railway should detect the root **`Dockerfile`** and build with Docker ([docs](https://docs.railway.com/builds/dockerfiles)).
+
 ### 1.1 Create the service
 
 1. Go to [railway.app](https://railway.app) → sign in (GitHub is fine).
 2. **New project** → **Deploy from GitHub repo** → pick `insta_reels_tools_logger` (or your fork).
 3. Railway creates a service. Open it → **Settings**.
-4. Set **Root Directory** to: `backend`  
-   (Monorepo: code lives in `backend/`, not repo root.)
 
-### 1.2 Use Docker build (recommended)
+### 1.2 Configure the build (important)
 
-This repo includes `backend/Dockerfile` so Railway uses **Docker** instead of guessing `pip`:
+**Option A — Repo root (recommended)**
 
-1. In the same service → **Settings** → **Build** (or **Deploy** section, depending on UI).
-2. Set **Dockerfile path** to `Dockerfile` (path is relative to **Root Directory** `backend`, so it picks up `backend/Dockerfile`).
-3. If Railway offers “Builder”, choose **Dockerfile** / disable Nixpacks auto-detect if it conflicts.
+1. **Settings** → find **Root Directory** / **Watch paths** (wording varies).
+2. **Clear** “Root directory” if it is set to anything — the service should use the **full repo** so the root **`Dockerfile`** is present.
+3. **Settings** → **Build** → set **Builder** to **Dockerfile** if Railpack is still selected.
+4. **Dockerfile path**: `Dockerfile` (file at repository root, next to `backend/`).
+
+**Option B — `backend` only**
+
+1. **Root Directory** = **`backend`**.
+2. **Builder** = **Dockerfile**.
+3. **Dockerfile path** = **`Dockerfile`** (this is `backend/Dockerfile` on disk).
 
 ### 1.3 Environment variables
 
@@ -42,6 +60,10 @@ Optional later:
 | `CORS_ALLOW_ORIGINS` | Not wired in code yet; CORS is `*` in v1 |
 
 Redeploy after saving variables.
+
+### 1.3b `start.sh not found`
+
+That message is harmless if the **Dockerfile** `CMD` runs **uvicorn**. It often appears when Railpack was tried first; switching to **Dockerfile** builder removes the need for `start.sh`.
 
 ### 1.4 Public URL
 
