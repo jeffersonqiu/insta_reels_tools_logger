@@ -120,6 +120,16 @@ npm install
 npm run dev
 ```
 
+### If the UI looks unchanged (old counts, no “Watch Reel”)
+
+1. **Confirm the browser talks to the backend you think** — open DevTools → Network, reload `/`, and check the request host for `GET /api/tools`. It must match where you run FastAPI (usually `localhost:8000`). If `VITE_API_BASE_URL` points at **Railway/Vercel**, deploy or pull latest code there, or set `.env.local` to `http://localhost:8000` and **restart** `npm run dev` (Vite reads env only at startup).
+2. **Hard refresh** the tab: macOS **Cmd+Shift+R** (or disable cache in DevTools and reload).
+3. **Restart uvicorn** after pulling backend changes (`--reload` usually picks up `routers/tools.py` automatically).
+
+### “Seen in 2 videos” but only one Reel
+
+Instagram URLs often differ only by `?igsh=…` or a trailing `/`. Those are **two rows** in `videos` (unique on full URL) but the **same reel**. The API deduplicates by canonical path for counts and **Watch Reel** links. To clean the DB, delete the duplicate `videos` row you don’t need (CASCADE removes orphan `video_tools` links).
+
 ## 5) API Smoke Test (Webhook — after diagnostics pass)
 
 ```bash
