@@ -24,7 +24,23 @@ def download_reel_audio(instagram_url: str) -> tuple[str, dt.date | None]:
     try:
         with YoutubeDL(options) as ydl:
             info = ydl.extract_info(instagram_url, download=True)
-            filepath = ydl.prepare_filename(info)
+            # After download, real path is often in info["filepath"], not prepare_filename(info)
+            filepath = info.get("filepath") if isinstance(info, dict) else None
+            if not filepath or not os.path.exists(filepath):
+                filepath = ydl.prepare_filename(info)
+            if not os.path.exists(filepath):
+                # Fallback: largest non-temp file under temp_dir
+                candidates: list[str] = []
+                for root, _, files in os.walk(temp_dir):
+                    for name in files:
+                        if name.endswith((".part", ".ytdl")):
+                            continue
+                        full = os.path.join(root, name)
+                        if os.path.isfile(full):
+                            candidates.append(full)
+                if not candidates:
+                    raise DownloadError("Audio file was not created by yt-dlp.")
+                filepath = max(candidates, key=lambda p: os.path.getsize(p))
 
         if not os.path.exists(filepath):
             raise DownloadError("Audio file was not created by yt-dlp.")

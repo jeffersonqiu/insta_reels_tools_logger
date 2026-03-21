@@ -3,6 +3,7 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from routers.diagnostics import router as diagnostics_router
 from routers.tools import router as tools_router
 from routers.videos import router as videos_router
 from routers.webhook import router as webhook_router
@@ -22,6 +23,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(diagnostics_router, prefix="/api")
 app.include_router(webhook_router, prefix="/api")
 app.include_router(tools_router, prefix="/api")
 app.include_router(videos_router, prefix="/api")

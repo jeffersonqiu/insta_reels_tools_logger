@@ -67,9 +67,11 @@ ai-tools-tracker/
 │   ├── main.py                      # FastAPI app entrypoint
 │   ├── routers/
 │   │   ├── webhook.py               # POST /webhook/reel
+│   │   ├── diagnostics.py           # GET /diagnostics/assemblyai (pre-flight)
 │   │   ├── tools.py                 # GET /tools, PATCH /tools/:id/interaction
 │   │   └── videos.py                # GET /videos
 │   ├── services/
+│   │   ├── assemblyai_check.py      # Structured AssemblyAI connectivity check (no pipeline)
 │   │   ├── downloader.py            # yt-dlp wrapper
 │   │   ├── transcriber.py           # AssemblyAI wrapper
 │   │   ├── extractor.py             # Claude extraction logic
@@ -267,7 +269,18 @@ Apply only fields where `should_update_*` is true. Always update `first_seen_dat
 
 **E.** Return list of tool IDs processed.
 
-### 2.7 `routers/webhook.py`
+### 2.7 Pre-flight diagnostics — `routers/diagnostics.py` + `services/assemblyai_check.py`
+
+Before running the full ingest pipeline, validate AssemblyAI in isolation:
+
+- `GET /api/diagnostics/assemblyai` — calls AssemblyAI transcript list API (`limit=1`) with `Authorization: <ASSEMBLYAI_API_KEY>`. Returns structured JSON: `ok`, `service`, `configured`, `reachable`, `http_status`, `message`, `hint`. Never echoes the key.
+- `GET /api/diagnostics/summary` — ordered checklist (`steps[]`, `all_ok`, `next_if_all_ok`) for future checks (e.g. Supabase ping).
+
+**Workflow:** health → `/api/diagnostics/assemblyai` (must be `"ok": true`) → `POST /api/webhook/reel`.
+
+Env: `ASSEMBLYAI_API_KEY` is trimmed; surrounding single/double quotes from `.env` are stripped in `config.py` to avoid subtle 401s.
+
+### 2.8 `routers/webhook.py`
 
 `POST /api/webhook/reel`
 
@@ -285,24 +298,24 @@ Steps:
 3. Return `{"status": "processing"}` immediately and hand off to a `BackgroundTasks` function.
 4. In the background: call downloader → insert video row → transcriber → update transcript → extractor → update raw_extraction → deduplicator → update tool references.
 
-### 2.8 `routers/tools.py`
+### 2.9 `routers/tools.py`
 
 - `GET /api/tools` — return all tools joined with `user_interactions` status. Query param `?status=to_explore|implemented|not_interested|all` (default: `all`). Sort by `first_seen_date` descending.
 - `PATCH /api/tools/{tool_id}/interaction` — update `status` and optional `notes`. Touch `updated_at`.
 
-### 2.9 `routers/videos.py`
+### 2.10 `routers/videos.py`
 
 - `GET /api/videos` — all videos with associated tool names via `video_tools`. Sort by `video_created_at` descending.
 - `GET /api/videos/{video_id}` — single video with full tool details.
 
-### 2.10 `main.py`
+### 2.11 `main.py`
 
 - FastAPI app with all routers under `/api` prefix
 - CORS middleware allowing all origins (personal tool, multiple devices)
 - `GET /health` returning `{"status": "ok"}`
 - Env vars loaded via `pydantic-settings`
 
-### 2.11 Telegram Bot — `services/telegram_bot.py`
+### 2.12 Telegram Bot — `services/telegram_bot.py`
 
 Runs as a separate process (separate Railway service or alongside FastAPI via asyncio). The bot:
 - Listens to a private group or channel

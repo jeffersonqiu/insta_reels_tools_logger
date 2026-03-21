@@ -40,7 +40,7 @@ Personal full-stack tracker for AI tools discovered in Instagram Reels.
 ## 2) Supabase Setup (From Scratch)
 
 1. Create a new Supabase project.
-2. Open **SQL Editor** and run `backend/db/migrations/001_initial.sql`.
+2. Open **SQL Editor** and run `backend/db/migrations/001_initial.sql`, then `002_processing_error.sql` (adds `videos.processing_error` for debugging failed background jobs).
 3. Enable RLS on all app tables (`videos`, `tools`, `video_tools`, `user_interactions`).
 4. Create permissive policy for service-role-backed backend usage (personal app pattern).
    - Example policy shape:
@@ -81,6 +81,29 @@ Health check:
 curl http://localhost:8000/health
 ```
 
+### Pipeline preflight (do this before the webhook)
+
+Run these **in order** so failures are easy to localize:
+
+| Step | What | Command / URL |
+|------|------|----------------|
+| 1 | Health | `GET http://localhost:8000/health` |
+| 2 | **AssemblyAI** (key + network, no download) | `GET http://localhost:8000/api/diagnostics/assemblyai` |
+| 3 | Full checklist JSON | `GET http://localhost:8000/api/diagnostics/summary` |
+| 4 | Ingest a Reel | `POST /api/webhook/reel` (see below) |
+
+Examples:
+
+```bash
+curl -s http://localhost:8000/api/diagnostics/assemblyai | python3 -m json.tool
+curl -s http://localhost:8000/api/diagnostics/summary | python3 -m json.tool
+```
+
+Interpretation:
+
+- `"ok": true` on `/api/diagnostics/assemblyai` → key is accepted by AssemblyAI; safe to run the full pipeline.
+- `"ok": false` → read `message` and `hint`; fix `ASSEMBLYAI_API_KEY` in `.env` (no extra quotes/spaces), restart uvicorn, retry step 2.
+
 ## 4) Frontend Setup
 
 Create `frontend/.env.local`:
@@ -97,7 +120,7 @@ npm install
 npm run dev
 ```
 
-## 5) API Smoke Test (Webhook)
+## 5) API Smoke Test (Webhook — after diagnostics pass)
 
 ```bash
 curl -X POST http://localhost:8000/api/webhook/reel \
