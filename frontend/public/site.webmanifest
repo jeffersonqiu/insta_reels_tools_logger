@@ -1,0 +1,22 @@
+{
+  "name": "AI Tools Tracker",
+  "short_name": "Tools Tracker",
+  "icons": [
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "theme_color": "#030712",
+  "background_color": "#030712",
+  "display": "standalone",
+  "start_url": "/"
+}
