@@ -5,8 +5,13 @@ import BarList from '../components/shell/BarList'
 import PageHeader from '../components/shell/PageHeader'
 import Panel from '../components/shell/Panel'
 import StatCard from '../components/shell/StatCard'
+import { CHART_FILL } from '../theme/chartColors'
 
 function SeriesChart({ series }) {
+  if (!series || !series.length) {
+    return <p className="text-sm text-ink-muted">No activity in this window yet.</p>
+  }
+
   const maxV = useMemo(() => Math.max(...series.map((d) => d.videos_processed || 0), 1), [series])
   const maxT = useMemo(() => Math.max(...series.map((d) => d.distinct_tools_linked || 0), 1), [series])
 
@@ -20,13 +25,13 @@ function SeriesChart({ series }) {
           <div key={day.date} className="flex min-w-0 flex-1 flex-col items-center gap-2">
             <div className="flex h-24 w-full items-end justify-center gap-0.5 sm:h-28">
               <div
-                className="w-[42%] max-w-[14px] rounded-t-sm bg-chart-1/90 transition-all"
-                style={{ height: `${hV}%` }}
+                className="w-[42%] max-w-[14px] min-h-[4px] rounded-t-sm transition-all"
+                style={{ height: `${hV}%`, backgroundColor: CHART_FILL.c1 }}
                 title={`${day.videos_processed} reels`}
               />
               <div
-                className="w-[42%] max-w-[14px] rounded-t-sm bg-chart-2/90 transition-all"
-                style={{ height: `${hT}%` }}
+                className="w-[42%] max-w-[14px] min-h-[4px] rounded-t-sm transition-all"
+                style={{ height: `${hT}%`, backgroundColor: CHART_FILL.c2 }}
                 title={`${day.distinct_tools_linked} tools`}
               />
             </div>
@@ -42,9 +47,9 @@ function StatusBars({ breakdown }) {
   if (!breakdown) return null
   const total = breakdown.all || 1
   const rows = [
-    { key: 'to_explore', label: 'To explore', count: breakdown.to_explore, color: 'bg-accent/80' },
-    { key: 'implemented', label: 'Implemented', count: breakdown.implemented, color: 'bg-mint/80' },
-    { key: 'not_interested', label: 'Not interested', count: breakdown.not_interested, color: 'bg-coral/80' },
+    { key: 'to_explore', label: 'To explore', count: breakdown.to_explore, fill: CHART_FILL.accent },
+    { key: 'implemented', label: 'Implemented', count: breakdown.implemented, fill: CHART_FILL.mint },
+    { key: 'not_interested', label: 'Not interested', count: breakdown.not_interested, fill: CHART_FILL.coral },
   ]
   return (
     <ul className="space-y-4">
@@ -60,7 +65,10 @@ function StatusBars({ breakdown }) {
               </span>
             </div>
             <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-white/[0.06]">
-              <div className={`h-full rounded-full ${row.color}`} style={{ width: `${pct}%` }} />
+              <div
+                className="h-full min-w-[2px] rounded-full"
+                style={{ width: `${pct}%`, backgroundColor: row.fill }}
+              />
             </div>
           </li>
         )

@@ -76,8 +76,10 @@ function Feed() {
       try {
         const { data } = await client.get('/api/tools', { params: { status: activeTab } })
         if (mounted) setTools(Array.isArray(data) ? data : [])
-      } catch {
-        if (mounted) setError('Failed to load tools.')
+      } catch (err) {
+        const status = err.response?.status
+        const suffix = status ? ` (HTTP ${status})` : ''
+        if (mounted) setError(`Failed to load tools.${suffix}`)
       } finally {
         if (mounted) setLoading(false)
       }

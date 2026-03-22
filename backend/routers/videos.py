@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+from fastapi.encoders import jsonable_encoder
 
 from db.client import get_supabase
 
@@ -23,7 +24,7 @@ def list_videos():
     for video in videos:
         related = [row["tool_id"] for row in links if row["video_id"] == video["id"]]
         video["tool_names"] = [tool_name_by_id[tid] for tid in related if tid in tool_name_by_id]
-    return videos
+    return jsonable_encoder(videos)
 
 
 @router.get("/{video_id}")
@@ -56,4 +57,4 @@ def get_video(video_id: str):
         )
 
     video["tools"] = merged_tools
-    return video
+    return jsonable_encoder(video)

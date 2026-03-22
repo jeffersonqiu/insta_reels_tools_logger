@@ -1,5 +1,7 @@
 import React from 'react'
 
+import { CHART_FILL } from '../../theme/chartColors'
+
 /**
  * Horizontal bar rows (tag prevalence, etc.) — CSS-only, no chart lib.
  */
@@ -10,14 +12,15 @@ function BarList({ items, valueKey = 'count', labelKey = 'tag', emptyMessage = '
 
   const max = Math.max(...items.map((i) => Number(i[valueKey]) || 0), 1)
 
+  const barColors = [CHART_FILL.c1, CHART_FILL.c2, CHART_FILL.c3]
+
   return (
     <ul className="space-y-3" role="list">
       {items.map((item, idx) => {
         const v = Number(item[valueKey]) || 0
         const pct = Math.round((v / max) * 100)
         const label = item[labelKey]
-        const hue = idx % 3
-        const barClass = hue === 0 ? 'bg-chart-1/85' : hue === 1 ? 'bg-chart-2/85' : 'bg-chart-3/85'
+        const fill = barColors[idx % barColors.length]
         return (
           <li key={String(label)}>
             <div className="flex items-center justify-between gap-2 text-xs">
@@ -26,8 +29,8 @@ function BarList({ items, valueKey = 'count', labelKey = 'tag', emptyMessage = '
             </div>
             <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-white/[0.06]">
               <div
-                className={`h-full rounded-full transition-all duration-500 ${barClass}`}
-                style={{ width: `${pct}%` }}
+                className="h-full min-w-[2px] rounded-full transition-all duration-500"
+                style={{ width: `${pct}%`, backgroundColor: fill }}
                 role="presentation"
               />
             </div>

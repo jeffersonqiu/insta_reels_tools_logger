@@ -2,6 +2,7 @@ import datetime as dt
 from urllib.parse import urlparse, urlunparse
 
 from fastapi import APIRouter, HTTPException, Query, Response
+from fastapi.encoders import jsonable_encoder
 
 from db.client import get_supabase
 from models.schemas import ToolInteractionPatch
@@ -110,8 +111,11 @@ def list_tools(response: Response, status: str = Query(default="all")):
 
     merged = _build_merged_tools()
     if status == "all":
-        return merged
-    return [m for m in merged if m["status"] == status]
+        filtered = merged
+    else:
+        filtered = [m for m in merged if m["status"] == status]
+    # Supabase returns UUID/datetime objects; JSONResponse must not 500 on encode.
+    return jsonable_encoder(filtered)
 
 
 @router.patch("/{tool_id}/interaction")
@@ -129,4 +133,4 @@ def update_interaction(tool_id: str, payload: ToolInteractionPatch):
     ).execute()
     if not result.data:
         raise HTTPException(status_code=404, detail="Tool interaction update failed")
-    return result.data[0]
+    return jsonable_encoder(result.data[0])

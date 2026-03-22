@@ -16,10 +16,12 @@ logging.basicConfig(
 
 app = FastAPI(title="AI Tools Tracker API")
 
+# Browsers reject allow_origins=["*"] with allow_credentials=True; keep credentials off
+# for this API (axios default) so any static host (e.g. Vercel) can call the API.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )

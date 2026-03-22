@@ -1,41 +1,80 @@
 # AI Tools Tracker
 
-Personal full-stack tracker for AI tools discovered in Instagram Reels.
+## Objective
 
-## What It Does
+**Turn Instagram Reels about AI tools into a searchable, personal inbox you control.**  
+Share a Reel URL (iOS Shortcut or webhook), and the pipeline downloads audio, transcribes it, extracts structured tool records with Claude, deduplicates against what you already have in Supabase, and shows everything in a small **mobile-first** web app where you mark items as *to explore*, *implemented*, or *not interested*.
 
-- Accepts a Reel URL through webhook (and optional Telegram bot fallback).
-- Downloads audio with `yt-dlp`.
-- Transcribes with AssemblyAI.
-- Extracts structured tool records with Claude.
-- Deduplicates and merges updates into Supabase.
-- Shows tools in a mobile-first React UI with status tracking.
+This repo is a **personal** full-stack tracker—not a generic scraper product. It is built to stay cheap, low-maintenance, and easy to extend in code.
 
-## Tech Stack
+---
 
-- Backend: FastAPI + Python 3.12 + `uv`
-- DB: Supabase Postgres
-- Frontend: React + Vite + Tailwind CSS
-- Hosting: Railway (backend) + Vercel (frontend)
+## Screenshots
 
-## Repository Layout
+Stylized previews of the shipped UI (dark theme, filters, tool cards, video detail). Replace these SVGs under `docs/screenshots/` with your own PNG captures if you want pixel-perfect repo thumbnails.
 
-- `backend/`: API, ingestion, extraction, deduplication, migrations
-- `frontend/`: UI for feed and video detail
-- `CLAUDE.md`: canonical project instructions for Claude Code
-- `agent.md`: pointer file for generic agents
+| Feed | Video detail |
+|------|----------------|
+| ![Feed — tool inbox with status filters and cards](docs/screenshots/feed.svg) | ![Video — source URL and transcript area](docs/screenshots/video-detail.svg) |
+
+---
+
+## What you get
+
+- Webhook ingestion of an Instagram Reel URL (+ optional Telegram bot forwarding).
+- Audio via **yt-dlp** → transcription via **AssemblyAI** → extraction via **Claude** → **Supabase** Postgres with deduplication.
+- React UI: feed with filters/tags, per-tool status, and a video page with source link and transcript tooling.
+
+---
+
+## Table of contents
+
+1. [Tech stack](#tech-stack)
+2. [Repository layout](#repository-layout)
+3. [Prerequisites](#1-prerequisites)
+4. [Supabase setup](#2-supabase-setup-from-scratch)
+5. [Backend setup](#3-backend-setup)
+6. [Frontend setup](#4-frontend-setup)
+7. [API smoke test (webhook)](#5-api-smoke-test-webhook--after-diagnostics-pass)
+8. [iOS Shortcut](#6-ios-shortcut-setup)
+9. [Optional Telegram](#7-optional-telegram-fallback)
+10. [Tests](#8-tests)
+11. [Deployment](#9-deployment)
+12. [v2 roadmap](#v2-roadmap)
+
+---
+
+## Tech stack
+
+| Layer | Choice |
+|--------|--------|
+| Backend | FastAPI · Python 3.12 · `uv` |
+| Database | Supabase (Postgres) |
+| Frontend | React · Vite · Tailwind CSS |
+| Hosting | Railway (API) · Vercel (UI) |
+
+---
+
+## Repository layout
+
+| Path | Purpose |
+|------|---------|
+| `backend/` | API, ingestion, extraction, deduplication, SQL migrations |
+| `frontend/` | Feed + video detail UI |
+| `docs/screenshots/` | README visuals (SVG previews; optional PNGs) |
+| `CLAUDE.md` | Canonical instructions for Claude Code / agents |
+| `agent.md` | Pointer for generic agents |
+| `DEPLOYMENT.md` | Railway + Vercel + iOS Shortcut checklist |
+
+---
 
 ## 1) Prerequisites
 
-- Python 3.12+ available (project pins to 3.12 in backend)
+- Python 3.12+ (project pins 3.12 in backend)
 - Node.js 18+
-- Accounts:
-  - Supabase
-  - Anthropic API
-  - AssemblyAI
-  - Railway
-  - Vercel
-  - Telegram Bot (optional fallback)
+- Accounts: Supabase, Anthropic, AssemblyAI, Railway, Vercel; optional Telegram bot
+
+---
 
 ## 2) Supabase Setup (From Scratch)
 
@@ -48,8 +87,10 @@ Personal full-stack tracker for AI tools discovered in Instagram Reels.
      - Action: all (`select`, `insert`, `update`, `delete`)
      - Using / Check: `auth.role() = 'service_role'`
 5. Copy:
-   - Project URL -> `SUPABASE_URL`
-   - Service role key -> `SUPABASE_SERVICE_KEY`
+   - Project URL → `SUPABASE_URL`
+   - Service role key → `SUPABASE_SERVICE_KEY`
+
+---
 
 ## 3) Backend Setup
 
@@ -104,6 +145,8 @@ Interpretation:
 - `"ok": true` on `/api/diagnostics/assemblyai` → key is accepted by AssemblyAI; safe to run the full pipeline.
 - `"ok": false` → read `message` and `hint`; fix `ASSEMBLYAI_API_KEY` in `.env` (no extra quotes/spaces), restart uvicorn, retry step 2.
 
+---
+
 ## 4) Frontend Setup
 
 Create `frontend/.env.local`:
@@ -131,6 +174,8 @@ npm run dev
 
 Instagram URLs often differ only by `?igsh=…` or a trailing `/`. Those are **two rows** in `videos` (unique on full URL) but the **same reel**. The API deduplicates by canonical path for counts and **Watch Reel** links. To clean the DB, delete the duplicate `videos` row you don’t need (CASCADE removes orphan `video_tools` links).
 
+---
+
 ## 5) API Smoke Test (Webhook — after diagnostics pass)
 
 ```bash
@@ -143,8 +188,11 @@ curl -X POST http://localhost:8000/api/webhook/reel \
 ```
 
 Expected:
+
 - First time: `{"status":"processing"}`
 - Duplicate URL: `{"status":"already_processed"}`
+
+---
 
 ## 6) iOS Shortcut Setup
 
@@ -163,12 +211,16 @@ Expected:
 5. Add **Show Content**.
 6. Enable **Show in Share Sheet** in shortcut details.
 
+---
+
 ## 7) Optional Telegram Fallback
 
 Telegram integration is optional and only needed if iOS Shortcut is not enough.
 
 - Bot logic file: `backend/services/telegram_bot.py`
 - It detects `instagram.com/reel/...` links and forwards them to webhook.
+
+---
 
 ## 8) Tests
 
@@ -186,6 +238,8 @@ cd frontend
 npm test
 ```
 
+---
+
 ## 9) Deployment
 
 **Step-by-step (Railway + Vercel + iOS Shortcut):** see **[DEPLOYMENT.md](./DEPLOYMENT.md)** in the repo root.
@@ -195,6 +249,8 @@ Summary:
 - **Railway:** Either leave **root directory empty** and use the repo-root **`Dockerfile`** (builds `backend/`), **or** set root directory to **`backend`** and use **`backend/Dockerfile`**. See **DEPLOYMENT.md** if Railpack fails on the monorepo.
 - **Vercel:** Root directory `frontend`, `VITE_API_BASE_URL=https://<your-railway-host>` (no trailing slash).
 - **Procfile** (non-Docker): `web: uv run uvicorn main:app --host 0.0.0.0 --port $PORT`
+
+---
 
 ## v2 Roadmap
 
