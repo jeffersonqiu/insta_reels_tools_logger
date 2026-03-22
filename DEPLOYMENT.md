@@ -4,6 +4,8 @@ Use this after local smoke tests pass (`/health`, `/api/diagnostics/assemblyai`,
 
 **When you add API routes** (e.g. `/api/metrics/overview`), deploy **Railway (backend) before or together with** Vercel so the UI does not call missing endpoints.
 
+**Dashboard KPI semantics** (so you do not confuse counts with Supabase row counts): *Mentions* = rows in `video_tools` for reels ingested in the rolling 7d window. *Tools first logged* = tools whose `first_seen_date` is on or after the same rolling cutoff date. See `CLAUDE.md` §2.9a for full definitions.
+
 ---
 
 ## Part 1 — Railway (FastAPI backend)

@@ -7,7 +7,6 @@ export default {
         sans: ['Outfit', 'system-ui', 'sans-serif'],
         mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
         display: ['Outfit', 'system-ui', 'sans-serif'],
-        stat: ['Syne', 'Outfit', 'system-ui', 'sans-serif'],
       },
       colors: {
         canvas: {

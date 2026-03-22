@@ -2,11 +2,21 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 
 import client from '../api/client'
 import FilterTabs from '../components/FilterTabs'
+import ToolCard from '../components/ToolCard'
+import ToolsTable from '../components/ToolsTable'
 import PageHeader from '../components/shell/PageHeader'
 import TagFilter from '../components/TagFilter'
-import ToolCard from '../components/ToolCard'
 
 const DEFAULT_COUNTS = { to_explore: 0, implemented: 0, not_interested: 0, all: 0 }
+const VIEW_STORAGE_KEY = 'ai-tools-tracker-feed-view'
+
+function readInitialView() {
+  try {
+    return localStorage.getItem(VIEW_STORAGE_KEY) === 'table' ? 'table' : 'cards'
+  } catch {
+    return 'cards'
+  }
+}
 
 function LoadingGrid() {
   return (
@@ -37,6 +47,16 @@ function Feed() {
   const [selectedTags, setSelectedTags] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [viewMode, setViewMode] = useState(readInitialView)
+
+  const setViewModePersist = useCallback((mode) => {
+    setViewMode(mode)
+    try {
+      localStorage.setItem(VIEW_STORAGE_KEY, mode)
+    } catch {
+      /* ignore */
+    }
+  }, [])
 
   const refreshCounts = useCallback(async () => {
     try {
@@ -123,6 +143,41 @@ function Feed() {
         title="Your tool feed"
         subtitle="Scan cards quickly—expand for details. Filter by tag or status."
       />
+      <div className="mb-4 flex flex-wrap items-center gap-2 animate-fade-up">
+        <span className="sr-only" id="feed-view-label">
+          Layout
+        </span>
+        <div
+          className="inline-flex rounded-xl border border-stroke bg-elevated/70 p-1 shadow-card backdrop-blur-sm"
+          role="group"
+          aria-labelledby="feed-view-label"
+        >
+          <button
+            type="button"
+            onClick={() => setViewModePersist('cards')}
+            className={`min-h-[44px] touch-manipulation rounded-lg px-4 py-2 text-sm font-medium outline-none transition focus-visible:ring-2 focus-visible:ring-accent ${
+              viewMode === 'cards'
+                ? 'bg-accent-dim text-accent shadow-[inset_0_0_0_1px_rgba(196,181,253,0.3)]'
+                : 'text-ink-muted hover:bg-white/[0.04] hover:text-ink'
+            }`}
+          >
+            Cards
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewModePersist('table')}
+            className={`min-h-[44px] touch-manipulation rounded-lg px-4 py-2 text-sm font-medium outline-none transition focus-visible:ring-2 focus-visible:ring-accent ${
+              viewMode === 'table'
+                ? 'bg-accent-dim text-accent shadow-[inset_0_0_0_1px_rgba(196,181,253,0.3)]'
+                : 'text-ink-muted hover:bg-white/[0.04] hover:text-ink'
+            }`}
+          >
+            Table
+          </button>
+        </div>
+        <p className="text-xs text-ink-faint">One row per tool in Supabase (unique tools).</p>
+      </div>
+
       <FilterTabs activeTab={activeTab} counts={counts} onChange={setActiveTab} />
       <TagFilter allTags={allTags} selectedTags={selectedTags} onToggle={toggleTag} onClear={clearTags} />
       {loading && <LoadingGrid />}
@@ -144,16 +199,20 @@ function Feed() {
           </p>
         </div>
       )}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {filteredTools.map((tool, index) => (
-          <ToolCard
-            key={tool.id}
-            tool={tool}
-            onStatusChanged={onStatusChanged}
-            style={{ animationDelay: `${80 + index * 45}ms` }}
-          />
-        ))}
-      </div>
+      {viewMode === 'table' ? (
+        <ToolsTable tools={filteredTools} onStatusChanged={onStatusChanged} />
+      ) : (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {filteredTools.map((tool, index) => (
+            <ToolCard
+              key={tool.id}
+              tool={tool}
+              onStatusChanged={onStatusChanged}
+              style={{ animationDelay: `${80 + index * 45}ms` }}
+            />
+          ))}
+        </div>
+      )}
     </section>
   )
 }

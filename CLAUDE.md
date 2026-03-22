@@ -307,7 +307,13 @@ Steps:
 
 ### 2.9a `routers/metrics.py`
 
-- `GET /api/metrics/overview` — dashboard payload: `videos_last_7d` (rolling 7×24h from `processed_at`), `tool_mentions_last_7d` (video_tools rows for those videos), `distinct_tools_in_new_reels_7d`, `tools_first_seen_last_7d` (UTC date on `first_seen_date`), `tag_prevalence` (top 15 `{tag,count}`), `status_breakdown`, `implemented_pct`, `series_last_7d` (7 UTC calendar days of `videos_processed` + `distinct_tools_linked`). Headers: `Cache-Control: no-store`.
+- `GET /api/metrics/overview` — dashboard payload. Headers: `Cache-Control: no-store`.
+- **`videos_last_7d`** — count of distinct reels with `processed_at >= now - 7 days` (rolling, UTC).
+- **`tool_mentions_last_7d`** — count of **`video_tools` rows** (video↔tool links) where the video is in that same recent set. Same tool in two reels ⇒ two mentions.
+- **`distinct_tools_in_new_reels_7d`** — distinct `tool_id` among those links.
+- **`tools_first_seen_last_7d`** — tools whose **`first_seen_date` (DATE) ≥ `cutoff.date()`** where `cutoff = now - 7 days`, aligned with the reel rolling window. Older tools can still get new mentions without incrementing this.
+- **`tag_prevalence`** — top 15 `{tag, count}` across all tools.
+- **`status_breakdown`**, **`implemented_pct`**, **`series_last_7d`** — last field: 7 UTC **calendar** days (inclusive) with per-day `videos_processed` and `distinct_tools_linked` for reels processed that day.
 
 ### 2.10 `routers/videos.py`
 
@@ -351,11 +357,12 @@ npm install axios react-router-dom
 
 ### 3.3 Feed Page (`pages/Feed.jsx`)
 
-- Fetch list from `GET /api/tools` with `params: { status: activeTab }`
+- Fetch list from `GET /api/tools` with `params: { status: activeTab }` — **one row per tool** (Supabase `tools.id`), not per extraction.
 - Fetch tab counts from `GET /api/tools/counts` (not derived from the filtered list)
 - Optional tag filter: load `GET /api/tools/tags`, client-side filter current list (**any** selected tag matches)
 - After status change: remove tool from list when it no longer matches `activeTab`; refresh counts
-- FilterTabs + tag chips + responsive ToolCard grid (dense: up to 3 columns on large screens)
+- **Cards | Table** toggle (persisted in `localStorage` key `ai-tools-tracker-feed-view`). Table: `components/ToolsTable.jsx` with status `<select>` and PATCH on change.
+- FilterTabs + tag chips + ToolCard grid **or** table
 - Empty state when no results or tag filter excludes everything
 
 ### 3.4 ToolCard Component (`components/ToolCard.jsx`)
@@ -387,7 +394,7 @@ Header nav: **Overview** (`/dashboard`), **Tools** (`/`).
 
 ### 3.7 Dashboard (`pages/Dashboard.jsx`)
 
-- Fetches `GET /api/metrics/overview` once; KPI stat cards, tag prevalence bars, triage mix, 7-day series (CSS-only).
+- Fetches `GET /api/metrics/overview` once; neutral KPI stat cards (single accent), tag prevalence + triage bars (restrained palette), 7-day series as **two labeled rows** (reels vs tools linked) with a compact legend. Copy on cards explains mentions vs `first_seen_date`.
 
 ---
 

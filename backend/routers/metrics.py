@@ -42,7 +42,7 @@ def metrics_overview(response: Response):
     supabase = get_supabase()
     now = _utc_now()
     cutoff = now - timedelta(days=7)
-    cutoff_iso = cutoff.isoformat()
+    cutoff_date = cutoff.date()
 
     videos_rows = supabase.table("videos").select("id,processed_at").execute().data or []
 
@@ -60,7 +60,6 @@ def metrics_overview(response: Response):
     distinct_tools_in_new_reels = len({row["tool_id"] for row in links if row.get("video_id") in video_ids_last_7d})
 
     today_utc = _utc_now().date()
-    week_ago = today_utc - timedelta(days=7)
     tools_rows = supabase.table("tools").select("id,first_seen_date,tags").execute().data or []
 
     tools_first_seen_last_7d = 0
@@ -77,7 +76,8 @@ def metrics_overview(response: Response):
                 fsd_d = fsd
             else:
                 fsd_d = None
-            if fsd_d and fsd_d >= week_ago:
+            # Same rolling horizon as reels (cutoff.date()), not a separate calendar window.
+            if fsd_d and fsd_d >= cutoff_date:
                 tools_first_seen_last_7d += 1
         for tag in t.get("tags") or []:
             if tag and isinstance(tag, str) and tag.strip():
