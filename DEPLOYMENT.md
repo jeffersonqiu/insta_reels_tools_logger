@@ -2,6 +2,8 @@
 
 Use this after local smoke tests pass (`/health`, `/api/diagnostics/assemblyai`, webhook → tools in Supabase).
 
+**When you add API routes** (e.g. `/api/metrics/overview`), deploy **Railway (backend) before or together with** Vercel so the UI does not call missing endpoints.
+
 ---
 
 ## Part 1 — Railway (FastAPI backend)

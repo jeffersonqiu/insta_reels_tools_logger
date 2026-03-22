@@ -67,7 +67,7 @@ function ToolCard({ tool, onStatusChanged, style }) {
         <button
           type="button"
           onClick={() => setExpanded((e) => !e)}
-          className="shrink-0 rounded-lg border border-stroke bg-white/[0.04] px-2 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-ink-muted transition hover:border-accent/25 hover:text-accent"
+          className="min-h-[44px] min-w-[44px] shrink-0 touch-manipulation rounded-lg border border-stroke bg-white/[0.04] px-3 font-mono text-[10px] font-semibold uppercase tracking-wider text-ink-muted transition hover:border-accent/25 hover:text-accent active:scale-[0.98]"
           aria-expanded={expanded}
         >
           {expanded ? 'Less' : 'More'}

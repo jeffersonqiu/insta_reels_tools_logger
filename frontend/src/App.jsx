@@ -1,5 +1,6 @@
 import React from 'react'
-import { Link, Route, Routes } from 'react-router-dom'
+import { Link, NavLink, Route, Routes } from 'react-router-dom'
+import Dashboard from './pages/Dashboard'
 import Feed from './pages/Feed'
 import VideoDetail from './pages/VideoDetail'
 
@@ -15,14 +16,19 @@ function LogoMark({ className = 'h-9 w-9' }) {
   )
 }
 
+const navLinkClass = ({ isActive }) =>
+  `rounded-lg px-3 py-2.5 text-sm font-medium transition outline-none focus-visible:ring-2 focus-visible:ring-accent min-h-[44px] inline-flex items-center touch-manipulation ${
+    isActive ? 'bg-accent-dim text-accent shadow-[inset_0_0_0_1px_rgba(196,181,253,0.35)]' : 'text-ink-muted hover:bg-white/[0.06] hover:text-ink'
+  }`
+
 function App() {
   return (
     <div className="min-h-screen text-ink">
-      <header className="sticky top-0 z-20 border-b border-stroke/80 bg-canvas-deep/75 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3.5">
+      <header className="sticky top-0 z-20 border-b border-stroke/80 bg-canvas-deep/80 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 md:py-3.5">
           <Link
             to="/"
-            className="group flex items-center gap-3 rounded-xl outline-none ring-accent/0 transition focus-visible:ring-2 focus-visible:ring-accent"
+            className="group flex w-fit items-center gap-3 rounded-xl outline-none ring-accent/0 transition focus-visible:ring-2 focus-visible:ring-accent"
           >
             <span className="relative shrink-0 shadow-glow transition duration-300 group-hover:scale-[1.03] group-hover:shadow-[0_0_32px_-8px_rgba(167,139,250,0.55)]">
               <LogoMark />
@@ -36,11 +42,20 @@ function App() {
               </span>
             </span>
           </Link>
+          <nav className="flex flex-wrap gap-1 border-t border-stroke/60 pt-3 sm:border-t-0 sm:pt-0" aria-label="Main">
+            <NavLink to="/dashboard" className={navLinkClass} end={false}>
+              Overview
+            </NavLink>
+            <NavLink to="/" className={navLinkClass} end>
+              Tools
+            </NavLink>
+          </nav>
         </div>
       </header>
       <main className="mx-auto w-full max-w-6xl px-4 py-8 md:py-10">
         <Routes>
           <Route path="/" element={<Feed />} />
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/videos/:id" element={<VideoDetail />} />
         </Routes>
       </main>

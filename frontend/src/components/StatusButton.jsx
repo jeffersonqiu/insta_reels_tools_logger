@@ -15,7 +15,7 @@ function StatusButton({ children, onClick, variant = 'default' }) {
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-lg border px-3 py-2 text-xs font-medium transition duration-200 outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas-deep focus-visible:ring-accent active:scale-[0.98] ${variants[variant]}`}
+      className={`min-h-[44px] touch-manipulation rounded-lg border px-3 py-2.5 text-xs font-medium transition duration-200 outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas-deep focus-visible:ring-accent active:scale-[0.97] sm:min-h-0 sm:py-2 ${variants[variant]}`}
     >
       {children}
     </button>

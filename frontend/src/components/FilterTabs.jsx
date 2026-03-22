@@ -18,7 +18,7 @@ function FilterTabs({ activeTab, counts, onChange }) {
               key={tab.key}
               type="button"
               onClick={() => onChange(tab.key)}
-              className={`relative rounded-xl px-4 py-2.5 text-left text-sm font-medium transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-accent md:text-center ${
+              className={`relative min-h-[48px] touch-manipulation rounded-xl px-4 py-3 text-left text-sm font-medium transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-accent active:scale-[0.99] md:min-h-[52px] md:text-center ${
                 selected
                   ? 'bg-accent-dim text-accent shadow-[inset_0_0_0_1px_rgba(196,181,253,0.35)]'
                   : 'text-ink-muted hover:bg-white/[0.04] hover:text-ink'

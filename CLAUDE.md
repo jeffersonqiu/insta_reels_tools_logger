@@ -305,6 +305,10 @@ Steps:
 - `GET /api/tools/tags` — sorted list of distinct tag strings from all tools (for filter UI).
 - `PATCH /api/tools/{tool_id}/interaction` — update `status` and optional `notes`. Touch `updated_at`.
 
+### 2.9a `routers/metrics.py`
+
+- `GET /api/metrics/overview` — dashboard payload: `videos_last_7d` (rolling 7×24h from `processed_at`), `tool_mentions_last_7d` (video_tools rows for those videos), `distinct_tools_in_new_reels_7d`, `tools_first_seen_last_7d` (UTC date on `first_seen_date`), `tag_prevalence` (top 15 `{tag,count}`), `status_breakdown`, `implemented_pct`, `series_last_7d` (7 UTC calendar days of `videos_processed` + `distinct_tools_linked`). Headers: `Cache-Control: no-store`.
+
 ### 2.10 `routers/videos.py`
 
 - `GET /api/videos` — all videos with associated tool names via `video_tools`. Sort by `video_created_at` descending.
@@ -374,9 +378,16 @@ Each card displays:
 ### 3.6 Routing
 
 ```
-/ → Feed
+/ → Feed (tools library)
+/dashboard → Dashboard (metrics overview)
 /videos/:id → VideoDetail
 ```
+
+Header nav: **Overview** (`/dashboard`), **Tools** (`/`).
+
+### 3.7 Dashboard (`pages/Dashboard.jsx`)
+
+- Fetches `GET /api/metrics/overview` once; KPI stat cards, tag prevalence bars, triage mix, 7-day series (CSS-only).
 
 ---
 

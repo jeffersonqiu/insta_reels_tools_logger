@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 
 import client from '../api/client'
 import FilterTabs from '../components/FilterTabs'
+import PageHeader from '../components/shell/PageHeader'
 import TagFilter from '../components/TagFilter'
 import ToolCard from '../components/ToolCard'
 
@@ -115,12 +116,11 @@ function Feed() {
 
   return (
     <section>
-      <div className="mb-2 animate-fade-up">
-        <h1 className="font-display text-3xl font-bold tracking-tight text-ink md:text-4xl">Your tool feed</h1>
-        <p className="mt-2 max-w-xl text-sm leading-relaxed text-ink-muted">
-          Scan cards quickly—expand for details. Filter by tag or status.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Library"
+        title="Your tool feed"
+        subtitle="Scan cards quickly—expand for details. Filter by tag or status."
+      />
       <FilterTabs activeTab={activeTab} counts={counts} onChange={setActiveTab} />
       <TagFilter allTags={allTags} selectedTags={selectedTags} onToggle={toggleTag} onClear={clearTags} />
       {loading && <LoadingGrid />}

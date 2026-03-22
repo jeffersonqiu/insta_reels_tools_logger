@@ -7,6 +7,7 @@ export default {
         sans: ['Outfit', 'system-ui', 'sans-serif'],
         mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
         display: ['Outfit', 'system-ui', 'sans-serif'],
+        stat: ['Syne', 'Outfit', 'system-ui', 'sans-serif'],
       },
       colors: {
         canvas: {
@@ -32,6 +33,14 @@ export default {
         coral: {
           DEFAULT: 'var(--color-coral)',
           dim: 'var(--color-coral-dim)',
+        },
+        chart: {
+          1: 'var(--color-chart-1)',
+          '1-dim': 'var(--color-chart-1-dim)',
+          2: 'var(--color-chart-2)',
+          '2-dim': 'var(--color-chart-2-dim)',
+          3: 'var(--color-chart-3)',
+          '3-dim': 'var(--color-chart-3-dim)',
         },
       },
       boxShadow: {

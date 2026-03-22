@@ -16,13 +16,17 @@ function TagFilter({ allTags, selectedTags, onToggle, onClear }) {
           <button
             type="button"
             onClick={onClear}
-            className="font-mono text-[11px] font-medium text-accent underline-offset-2 hover:underline"
+            className="min-h-[44px] touch-manipulation font-mono text-[11px] font-medium text-accent underline-offset-2 hover:underline sm:min-h-0"
           >
             Clear ({selectedTags.length})
           </button>
         )}
       </div>
-      <div className="mt-3 flex max-h-28 flex-wrap gap-2 overflow-y-auto pr-1 md:max-h-none">
+      <p className="mt-1 text-[10px] text-ink-faint md:hidden">Scroll tags vertically if the list is long.</p>
+      <div
+        className="mt-3 flex max-h-36 flex-wrap gap-2 overflow-y-auto overscroll-y-contain pr-1 [-webkit-overflow-scrolling:touch] md:max-h-none"
+        style={{ touchAction: 'pan-y' }}
+      >
         {allTags.map((tag) => {
           const on = selectedTags.includes(tag)
           return (
@@ -30,7 +34,7 @@ function TagFilter({ allTags, selectedTags, onToggle, onClear }) {
               key={tag}
               type="button"
               onClick={() => onToggle(tag)}
-              className={`rounded-lg border px-2.5 py-1 font-mono text-[11px] font-medium transition ${
+              className={`min-h-[40px] touch-manipulation rounded-lg border px-3 py-2 font-mono text-[11px] font-medium transition active:scale-[0.98] sm:min-h-0 sm:px-2.5 sm:py-1.5 ${
                 on
                   ? 'border-accent/40 bg-accent-dim text-accent shadow-sm'
                   : 'border-stroke bg-white/[0.04] text-ink-muted hover:border-stroke hover:bg-white/[0.07] hover:text-ink'

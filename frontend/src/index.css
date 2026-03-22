@@ -18,6 +18,13 @@
   --color-mint-dim: rgba(45, 212, 191, 0.16);
   --color-coral: #fb7185;
   --color-coral-dim: rgba(251, 113, 133, 0.16);
+  /* Data viz accents (dashboard) — keep brand violet for chrome only */
+  --color-chart-1: #5eead4;
+  --color-chart-1-dim: rgba(45, 212, 191, 0.2);
+  --color-chart-2: #fcd34d;
+  --color-chart-2-dim: rgba(252, 211, 77, 0.18);
+  --color-chart-3: #fb923c;
+  --color-chart-3-dim: rgba(251, 146, 60, 0.18);
   --shadow-card: 0 0 0 1px rgba(148, 163, 184, 0.08), 0 4px 24px -8px rgba(0, 0, 0, 0.55);
   --shadow-card-hover: 0 0 0 1px rgba(167, 139, 250, 0.22), 0 12px 40px -12px rgba(0, 0, 0, 0.65);
   --shadow-glow: 0 0 60px -15px var(--color-accent-glow);
