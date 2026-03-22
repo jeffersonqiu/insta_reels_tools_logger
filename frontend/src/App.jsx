@@ -7,37 +7,39 @@ import VideoDetail from './pages/VideoDetail'
 function LogoMark({ className = 'h-9 w-9' }) {
   return (
     <svg className={className} viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-      <rect width="512" height="512" rx="112" fill="#030712" />
-      <rect x="88" y="118" width="336" height="72" rx="20" fill="#8b5cf6" />
-      <rect x="88" y="220" width="256" height="72" rx="20" fill="#7c3aed" opacity=".92" />
-      <rect x="88" y="322" width="304" height="72" rx="20" fill="#a78bfa" opacity=".88" />
-      <circle cx="392" cy="152" r="28" fill="#c4b5fd" opacity=".95" />
+      <rect width="512" height="512" rx="112" fill="#2a2724" />
+      <rect x="88" y="118" width="336" height="72" rx="20" fill="#d4a574" />
+      <rect x="88" y="220" width="256" height="72" rx="20" fill="#c49a6c" opacity=".95" />
+      <rect x="88" y="322" width="304" height="72" rx="20" fill="#a89078" opacity=".9" />
+      <circle cx="392" cy="152" r="28" fill="#e8c4a0" opacity=".9" />
     </svg>
   )
 }
 
 const navLinkClass = ({ isActive }) =>
   `rounded-lg px-3 py-2.5 text-sm font-medium transition outline-none focus-visible:ring-2 focus-visible:ring-accent min-h-[44px] inline-flex items-center touch-manipulation ${
-    isActive ? 'bg-accent-dim text-accent shadow-[inset_0_0_0_1px_rgba(196,181,253,0.35)]' : 'text-ink-muted hover:bg-white/[0.06] hover:text-ink'
+    isActive
+      ? 'bg-white/[0.08] text-ink ring-1 ring-inset ring-accent/35'
+      : 'text-ink-muted hover:bg-white/[0.05] hover:text-ink'
   }`
 
 function App() {
   return (
     <div className="min-h-screen text-ink">
-      <header className="sticky top-0 z-20 border-b border-stroke/80 bg-canvas-deep/80 backdrop-blur-xl">
+      <header className="sticky top-0 z-20 border-b border-stroke bg-canvas-deep/90 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 md:py-3.5">
           <Link
             to="/"
-            className="group flex w-fit items-center gap-3 rounded-xl outline-none ring-accent/0 transition focus-visible:ring-2 focus-visible:ring-accent"
+            className="group flex w-fit items-center gap-3 rounded-xl outline-none ring-0 transition focus-visible:ring-2 focus-visible:ring-accent"
           >
-            <span className="relative shrink-0 shadow-glow transition duration-300 group-hover:scale-[1.03] group-hover:shadow-[0_0_32px_-8px_rgba(167,139,250,0.55)]">
+            <span className="relative shrink-0 transition duration-300 group-hover:scale-[1.02]">
               <LogoMark />
             </span>
             <span className="flex flex-col leading-tight">
-              <span className="font-display text-lg font-semibold tracking-tight text-ink transition group-hover:text-accent">
+              <span className="font-brand text-lg font-semibold leading-snug tracking-tight text-ink">
                 AI Tools Tracker
               </span>
-              <span className="font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-ink-faint">
+              <span className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-ink-faint">
                 From reels → your stack
               </span>
             </span>

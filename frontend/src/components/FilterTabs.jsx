@@ -20,14 +20,14 @@ function FilterTabs({ activeTab, counts, onChange }) {
               onClick={() => onChange(tab.key)}
               className={`relative min-h-[48px] touch-manipulation rounded-xl px-4 py-3 text-left text-sm font-medium transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-accent active:scale-[0.99] md:min-h-[52px] md:text-center ${
                 selected
-                  ? 'bg-accent-dim text-accent shadow-[inset_0_0_0_1px_rgba(196,181,253,0.35)]'
+                  ? 'bg-white/[0.08] text-ink ring-1 ring-inset ring-accent/35'
                   : 'text-ink-muted hover:bg-white/[0.04] hover:text-ink'
               }`}
             >
               <span className="block">{tab.label}</span>
               <span
                 className={`mt-0.5 block font-mono text-[11px] font-semibold tabular-nums ${
-                  selected ? 'text-accent/90' : 'text-ink-faint'
+                  selected ? 'text-accent' : 'text-ink-faint'
                 }`}
               >
                 {counts[tab.key] ?? 0}

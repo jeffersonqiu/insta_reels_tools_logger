@@ -361,8 +361,7 @@ npm install axios react-router-dom
 - Fetch tab counts from `GET /api/tools/counts` (not derived from the filtered list)
 - Optional tag filter: load `GET /api/tools/tags`, client-side filter current list (**any** selected tag matches)
 - After status change: remove tool from list when it no longer matches `activeTab`; refresh counts
-- **Cards | Table** toggle (persisted in `localStorage` key `ai-tools-tracker-feed-view`). Table: `components/ToolsTable.jsx` with status `<select>` and PATCH on change.
-- FilterTabs + tag chips + ToolCard grid **or** table
+- FilterTabs + tag chips + ToolCard grid only (one card per unique tool).
 - Empty state when no results or tag filter excludes everything
 
 ### 3.4 ToolCard Component (`components/ToolCard.jsx`)
@@ -394,7 +393,7 @@ Header nav: **Overview** (`/dashboard`), **Tools** (`/`).
 
 ### 3.7 Dashboard (`pages/Dashboard.jsx`)
 
-- Fetches `GET /api/metrics/overview` once; neutral KPI stat cards (single accent), tag prevalence + triage bars (restrained palette), 7-day series as **two labeled rows** (reels vs tools linked) with a compact legend. Copy on cards explains mentions vs `first_seen_date`.
+- Fetches `GET /api/metrics/overview` once; KPI stat cards; tag prevalence + triage bars; **7-day chart**: **side-by-side** bars per day (reels | tools), **numeric labels** on each bar, shared scale with **Y-axis** ticks (0 / max). Warm dark theme (charcoal + terracotta accent, not purple). Copy explains mentions vs `first_seen_date`.
 
 ---
 
