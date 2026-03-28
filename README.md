@@ -81,7 +81,7 @@ From a Reel, open **Share** → **Share to…** → choose **Track AI Reels** (S
 4. [Repository layout](#repository-layout)
 5. [Prerequisites](#1-prerequisites)
 6. [Supabase (database)](#2-supabase-setup-from-scratch)
-7. [Backend API](#3-backend-setup)
+7. [Backend API](#3-backend-setup) — [Verify Reel caption (yt-dlp)](#verify-reel-caption-yt-dlp)
 8. [Frontend](#4-frontend-setup)
 9. [Webhook smoke test](#5-api-smoke-test-webhook--after-diagnostics-pass)
 10. [iOS Shortcut](#6-ios-shortcut-setup)
@@ -167,6 +167,30 @@ curl -s http://localhost:8000/api/diagnostics/summary | python3 -m json.tool
 ```bash
 curl -s "http://localhost:8000/api/tools?status=all&q=mcp" | python3 -m json.tool
 ```
+
+### Verify Reel caption (yt-dlp)
+
+This checks that Instagram still exposes a **caption** (`description`) for a Reel using the same **yt-dlp** path as the downloader — no AssemblyAI or Anthropic calls.
+
+Example (run from `backend/`; needs network):
+
+```bash
+cd backend
+uv run python <<'PY'
+from yt_dlp import YoutubeDL
+from services.downloader import _caption_from_ytdlp_info
+
+url = "https://www.instagram.com/reel/DWIEsK7Ee-b/?igsh=bjZ3a2NucnRhbjJz"
+opts = {"quiet": True, "no_warnings": True, "skip_download": True}
+with YoutubeDL(opts) as ydl:
+    info = ydl.extract_info(url, download=False)
+cap = _caption_from_ytdlp_info(info)
+print("caption_chars:", len(cap or ""))
+print((cap or "")[:400])
+PY
+```
+
+**Checked in development:** this URL returns **496** characters of caption (Anthropic / Claude / Antspace, etc.), so the extractor can use post text alongside the transcript. **End-to-end ingest** still requires `003_caption.sql` applied, a filled `.env`, and `POST /api/webhook/reel` as in [§5](#5-api-smoke-test-webhook--after-diagnostics-pass).
 
 ---
 
