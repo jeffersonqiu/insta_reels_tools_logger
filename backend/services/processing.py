@@ -23,11 +23,12 @@ def process_reel(url: str) -> dict[str, Any]:
     supabase = get_supabase()
     video_id: str | None = None
     try:
-        audio_path, video_date = download_reel_audio(url)
+        audio_path, video_date, caption = download_reel_audio(url)
         insert_result = supabase.table("videos").insert(
             {
                 "instagram_url": url,
                 "video_created_at": video_date.isoformat() if video_date else None,
+                "caption": caption,
             }
         ).execute()
         video_id = insert_result.data[0]["id"]
@@ -35,7 +36,7 @@ def process_reel(url: str) -> dict[str, Any]:
         transcript = transcribe_audio_file(audio_path)
         supabase.table("videos").update({"transcript": transcript}).eq("id", video_id).execute()
 
-        tools: list[ToolExtraction] = extract_tools_from_transcript(transcript)
+        tools: list[ToolExtraction] = extract_tools_from_transcript(transcript, caption=caption)
         raw_extraction = [t.model_dump() for t in tools]
         supabase.table("videos").update({"raw_extraction": raw_extraction}).eq("id", video_id).execute()
 

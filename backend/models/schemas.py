@@ -51,5 +51,6 @@ class VideoDetailResponse(BaseModel):
     video_created_at: date | None = None
     processed_at: datetime | None = None
     transcript: str | None = None
+    caption: str | None = None
     raw_extraction: Any | None = None
     tools: list[ToolResponse] = Field(default_factory=list)

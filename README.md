@@ -12,7 +12,7 @@ This is a **personal** project: one owner, service-role access to the database, 
 ## How it works
 
 1. **Input** — You share a Reel URL to your Shortcut (or call the webhook from `curl`). The backend receives `POST /api/webhook/reel` with the URL and a shared secret.
-2. **Pipeline** — Audio is pulled with **yt-dlp**, transcribed with **AssemblyAI**, and structured into tool rows (name, description, tags, etc.) with the **Anthropic** API. Rows are deduplicated against existing tools in Postgres.
+2. **Pipeline** — Audio is pulled with **yt-dlp** (metadata includes the Reel **caption** when Instagram exposes it). **AssemblyAI** transcribes the audio. **Claude** turns transcript + caption into structured tool rows; when the caption spells a product name and the transcript mis-hears it, the extractor prefers the **caption spelling** for the tool `name`. Rows are deduplicated against existing tools in Postgres.
 3. **Storage** — **Supabase** holds videos, tools, links between them, and your per-tool status/notes.
 4. **UI** — **React** (Vite + Tailwind): **Overview** shows recent ingestion metrics; **Tools** lists the library with status tabs, **tag filters**, a **search** box (backed by `GET /api/tools?q=…`), and links to each source Reel / transcript where applicable.
 
@@ -103,7 +103,7 @@ From a Reel, open **Share** → **Share to…** → choose **Track AI Reels** (S
 ## 2) Supabase Setup (From Scratch)
 
 1. Create a Supabase project.
-2. In **SQL Editor**, run `backend/db/migrations/001_initial.sql`, then `002_processing_error.sql` (adds `videos.processing_error` for failed jobs).
+2. In **SQL Editor**, run `backend/db/migrations/001_initial.sql`, then `002_processing_error.sql`, then `003_caption.sql` (adds `videos.caption` from Reel metadata for better tool names).
 3. Enable RLS on `videos`, `tools`, `video_tools`, `user_interactions`.
 4. **Personal-app pattern:** add a policy so the backend (using the **service role** key) can read/write all rows, e.g. name `service_role_all`, actions all, condition `auth.role() = 'service_role'`.
 5. Copy **Project URL** → `SUPABASE_URL`, **service role key** → `SUPABASE_SERVICE_KEY` in `backend/.env`.

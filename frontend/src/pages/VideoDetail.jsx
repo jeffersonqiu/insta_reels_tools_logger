@@ -75,6 +75,16 @@ function VideoDetail() {
         </p>
       </div>
 
+      {data.caption ? (
+        <div
+          className="animate-fade-up overflow-hidden rounded-2xl border border-stroke bg-elevated/90 p-5 shadow-card backdrop-blur-md"
+          style={{ animationDelay: '100ms' }}
+        >
+          <p className="font-mono text-[11px] font-semibold uppercase tracking-wider text-ink-faint">Instagram caption</p>
+          <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-ink-muted">{data.caption}</p>
+        </div>
+      ) : null}
+
       <div
         className="animate-fade-up overflow-hidden rounded-2xl border border-stroke bg-elevated/90 shadow-card backdrop-blur-md"
         style={{ animationDelay: '120ms' }}

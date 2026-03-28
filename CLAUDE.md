@@ -167,6 +167,8 @@ CREATE TABLE user_interactions (
 CREATE UNIQUE INDEX one_interaction_per_tool ON user_interactions(tool_id);
 ```
 
+Also run incremental migrations in order (e.g. `002_processing_error.sql`, `003_caption.sql`) so `videos` includes `processing_error` and `caption` as in the repo’s `backend/db/migrations/`.
+
 After running migrations, enable Row Level Security (RLS) in Supabase and add a policy that permits all operations when using the service key. The backend always uses the service key, so this is safe for a personal tool.
 
 ---
@@ -189,7 +191,9 @@ Initialise the Supabase client using `SUPABASE_URL` and `SUPABASE_SERVICE_KEY` f
 
 ### 2.3 `services/downloader.py`
 
-Use `yt-dlp` to download only the audio stream from an Instagram Reel URL. Save to a temp directory created with `tempfile.mkdtemp()`. Return the local file path and the video upload date (available in yt-dlp metadata as `upload_date`, format `YYYYMMDD`). Handle errors gracefully — if the URL is invalid or the post is private, raise a descriptive exception.
+Use `yt-dlp` to download only the audio stream from an Instagram Reel URL. Save to a temp directory created with `tempfile.mkdtemp()`. Return **(local audio path, upload date or None, caption or None)**. The **caption** comes from the yt-dlp info dict — for Instagram, prefer `description` (post caption); if empty, fall back to `title` when it is not a generic placeholder. Captions help Claude spell product names correctly when speech-to-text is wrong.
+
+Handle errors gracefully — if the URL is invalid or the post is private, raise a descriptive exception.
 
 yt-dlp options:
 - Format: `bestaudio/best`
@@ -203,11 +207,16 @@ Use the AssemblyAI Python SDK (`aai.Transcriber` with default settings) to trans
 
 ### 2.5 `services/extractor.py`
 
-Call the Claude API with the transcript as input. The system prompt must instruct Claude to:
+Call the Claude API with **both** the audio transcript and an **optional Instagram caption** (when `videos.caption` is populated from yt-dlp). Structure the user message with clear sections: `## AUDIO TRANSCRIPT` and `## INSTAGRAM CAPTION` (or a note that the caption was empty).
 
-1. Identify all distinct AI tools or AI-related product upgrades mentioned in the transcript.
+The system prompt must instruct Claude:
+
+- **Caption vs audio for `name`:** When the caption clearly names a product that matches something discussed in the audio but the transcript spells it wrong (ASR error), use the **caption’s exact spelling** for the JSON `name` field. Example: caption `ruflo` vs transcript `ruflow` → use `ruflo`. If the caption has no usable product names, infer names from the transcript only.
+- Then proceed as before:
+
+1. Identify all distinct AI tools or AI-related product upgrades mentioned in the reel (audio + caption context).
 2. For each tool, return a JSON array where each object has:
-   - `name` — clean proper name (e.g. "e2b.dev", "21st.dev", "Claude Code")
+   - `name` — clean proper name (e.g. "e2b.dev", "21st.dev", "Claude Code") — prefer caption spelling when it disambiguates the same product as in the transcript
    - `functionality` — 2–3 sentences describing what the tool does
    - `problem_solved` — 1–2 sentences describing the specific problem this tool solves for a developer or AI practitioner. Be concrete and outcome-focused. Good examples:
      - "Isolates AI agents in secure sandboxed environments so they cannot affect the host machine or other processes."
