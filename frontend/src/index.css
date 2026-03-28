@@ -64,6 +64,40 @@
   }
 }
 
+@layer components {
+  /* Native `type="search"` uses a light WebKit skin; force app theme + readable text. */
+  .tool-search-input {
+    -webkit-appearance: none;
+    appearance: none;
+    color: var(--color-ink);
+  }
+
+  .tool-search-input::placeholder {
+    color: var(--color-ink-muted);
+    opacity: 1;
+  }
+
+  .tool-search-input::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 1rem;
+    width: 1rem;
+    margin-right: 0.25rem;
+    cursor: pointer;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23a8a29e'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M6 18L18 6M6 6l12 12'/%3E%3C/svg%3E")
+      center / contain no-repeat;
+  }
+
+  .tool-search-input:-webkit-autofill,
+  .tool-search-input:-webkit-autofill:hover,
+  .tool-search-input:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--color-ink);
+    caret-color: var(--color-accent);
+    transition: background-color 9999s ease-out;
+    box-shadow: 0 0 0 1000px var(--color-elevated) inset;
+  }
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;

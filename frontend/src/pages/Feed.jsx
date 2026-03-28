@@ -157,7 +157,7 @@ function Feed() {
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Search tools (name, description, tags)…"
             autoComplete="off"
-            className="w-full min-h-[48px] rounded-xl border border-stroke bg-elevated/80 py-3 pl-11 pr-4 text-sm text-ink placeholder:text-ink-faint outline-none ring-0 transition focus-visible:border-accent/50 focus-visible:ring-2 focus-visible:ring-accent/30"
+            className="tool-search-input w-full min-h-[48px] appearance-none rounded-xl border border-stroke bg-elevated/90 py-3 pl-11 pr-4 text-sm text-ink caret-accent shadow-card backdrop-blur-md outline-none ring-0 transition placeholder:text-ink-muted focus-visible:border-accent/50 focus-visible:ring-2 focus-visible:ring-accent/30 [color-scheme:dark]"
           />
         </div>
       </div>
