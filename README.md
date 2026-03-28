@@ -9,13 +9,42 @@ This repo is a **personal** full-stack tracker—not a generic scraper product. 
 
 ---
 
-## Screenshots
+## Screenshots & demo
 
-Stylized previews of the shipped UI (dark theme, filters, tool cards, video detail). Replace these SVGs under `docs/screenshots/` with your own PNG captures if you want pixel-perfect repo thumbnails.
+### From Instagram → your backend (iOS)
 
-| Feed | Video detail |
-|------|----------------|
-| ![Feed — tool inbox with status filters and cards](docs/screenshots/feed.svg) | ![Video — source URL and transcript area](docs/screenshots/video-detail.svg) |
+Open a Reel, tap **Share**, choose **Share to…**, then pick **Track AI Reels** from the share sheet (Shortcut). The shortcut `POST`s the Reel URL to `/api/webhook/reel`.
+
+| Share sheet (open share) | Pick “Track AI Reels” |
+|--------------------------|------------------------|
+| ![Instagram Share sheet](docs/screenshots/instagram-share-step1.png) | ![Track AI Reels in share sheet](docs/screenshots/instagram-share-track-shortcut.png) |
+
+**Shortcut wiring** — receive URLs from the Share Sheet, call your deployed API, show the JSON response:
+
+![Track AI Reels shortcut](docs/screenshots/ios-shortcut-track-ai-reels.png)
+
+### Web app (Overview + Tools + search)
+
+The UI is dark-themed: **Overview** for 7-day metrics and tag/triage mix; **Tools** for the library with status tabs, **search** (name / description / tags), and tag filters.
+
+| Overview dashboard | Tools library |
+|--------------------|---------------|
+| ![Overview dashboard](docs/screenshots/web-overview-dashboard.png) | ![Tools library with search and cards](docs/screenshots/web-tools-library.png) |
+
+### Screen recording (Playwright)
+
+This GIF is generated with **Playwright** (mocked API) so it stays reproducible without a live backend. Regenerate the video + GIF locally:
+
+```bash
+cd frontend
+npm install
+npx playwright install chromium   # once per machine
+npm run record:demo                 # builds with VITE_API_BASE_URL for mocks, runs e2e/demo.spec.js
+# Optional: convert the recorded .webm under test-results/ to docs/screenshots/demo.gif (requires ffmpeg)
+../scripts/record-demo-gif.sh
+```
+
+![AI Tools Tracker demo (Overview → Tools → search)](docs/screenshots/demo.gif)
 
 ---
 
@@ -23,24 +52,25 @@ Stylized previews of the shipped UI (dark theme, filters, tool cards, video deta
 
 - Webhook ingestion of an Instagram Reel URL (+ optional Telegram bot forwarding).
 - Audio via **yt-dlp** → transcription via **AssemblyAI** → extraction via **Claude** → **Supabase** Postgres with deduplication.
-- React UI: feed with filters/tags, per-tool status, and a video page with source link and transcript tooling.
+- React UI: **Overview** dashboard, **Tools** feed with **search** (`q` query + search box), status tabs, tags, per-tool actions, and video detail with source link and transcript.
 
 ---
 
 ## Table of contents
 
-1. [Tech stack](#tech-stack)
-2. [Repository layout](#repository-layout)
-3. [Prerequisites](#1-prerequisites)
-4. [Supabase setup](#2-supabase-setup-from-scratch)
-5. [Backend setup](#3-backend-setup)
-6. [Frontend setup](#4-frontend-setup)
-7. [API smoke test (webhook)](#5-api-smoke-test-webhook--after-diagnostics-pass)
-8. [iOS Shortcut](#6-ios-shortcut-setup)
-9. [Optional Telegram](#7-optional-telegram-fallback)
-10. [Tests](#8-tests)
-11. [Deployment](#9-deployment)
-12. [v2 roadmap](#v2-roadmap)
+1. [Screenshots & demo](#screenshots--demo)
+2. [Tech stack](#tech-stack)
+3. [Repository layout](#repository-layout)
+4. [Prerequisites](#1-prerequisites)
+5. [Supabase setup](#2-supabase-setup-from-scratch)
+6. [Backend setup](#3-backend-setup)
+7. [Frontend setup](#4-frontend-setup)
+8. [API smoke test (webhook)](#5-api-smoke-test-webhook--after-diagnostics-pass)
+9. [iOS Shortcut](#6-ios-shortcut-setup)
+10. [Optional Telegram](#7-optional-telegram-fallback)
+11. [Tests](#8-tests)
+12. [Deployment](#9-deployment)
+13. [v2 roadmap](#v2-roadmap)
 
 ---
 
@@ -60,8 +90,9 @@ Stylized previews of the shipped UI (dark theme, filters, tool cards, video deta
 | Path | Purpose |
 |------|---------|
 | `backend/` | API, ingestion, extraction, deduplication, SQL migrations |
-| `frontend/` | Feed + video detail UI |
-| `docs/screenshots/` | README visuals (SVG previews; optional PNGs) |
+| `frontend/` | React UI (Overview, Tools, video detail); `e2e/` = Playwright demo (`npm run record:demo`) |
+| `docs/screenshots/` | README images + `demo.gif` (Playwright + ffmpeg) |
+| `scripts/record-demo-gif.sh` | Converts Playwright `.webm` → `docs/screenshots/demo.gif` |
 | `CLAUDE.md` | Canonical instructions for Claude Code / agents |
 | `agent.md` | Pointer for generic agents |
 | `DEPLOYMENT.md` | Railway + Vercel + iOS Shortcut checklist |
@@ -144,6 +175,14 @@ Interpretation:
 
 - `"ok": true` on `/api/diagnostics/assemblyai` → key is accepted by AssemblyAI; safe to run the full pipeline.
 - `"ok": false` → read `message` and `hint`; fix `ASSEMBLYAI_API_KEY` in `.env` (no extra quotes/spaces), restart uvicorn, retry step 2.
+
+### Tools list + search
+
+`GET /api/tools?status=to_explore` returns tools for that triage tab. Add an optional **`q`** parameter to filter by substring on **name**, **functionality**, **problem_solved**, **tags**, and **notes** (case-insensitive), for example:
+
+```bash
+curl -s "http://localhost:8000/api/tools?status=all&q=mcp" | python3 -m json.tool
+```
 
 ---
 
@@ -231,11 +270,18 @@ cd backend
 uv run pytest
 ```
 
-Frontend:
+Frontend (unit):
 
 ```bash
 cd frontend
 npm test
+```
+
+End-to-end (Playwright — builds `frontend` with `VITE_API_BASE_URL=http://127.0.0.1:8000`, mocks API, records video):
+
+```bash
+cd frontend
+npm run record:demo
 ```
 
 ---

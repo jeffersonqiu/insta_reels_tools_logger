@@ -31,6 +31,8 @@ function LoadingGrid() {
 
 function Feed() {
   const [activeTab, setActiveTab] = useState('to_explore')
+  const [searchInput, setSearchInput] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [tools, setTools] = useState([])
   const [counts, setCounts] = useState(DEFAULT_COUNTS)
   const [allTags, setAllTags] = useState([])
@@ -69,12 +71,19 @@ function Feed() {
   }, [loadTags, refreshCounts])
 
   useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchInput.trim()), 300)
+    return () => clearTimeout(t)
+  }, [searchInput])
+
+  useEffect(() => {
     let mounted = true
     const fetchTools = async () => {
       setLoading(true)
       setError('')
       try {
-        const { data } = await client.get('/api/tools', { params: { status: activeTab } })
+        const params = { status: activeTab }
+        if (debouncedSearch) params.q = debouncedSearch
+        const { data } = await client.get('/api/tools', { params })
         if (mounted) setTools(Array.isArray(data) ? data : [])
       } catch (err) {
         const status = err.response?.status
@@ -88,7 +97,7 @@ function Feed() {
     return () => {
       mounted = false
     }
-  }, [activeTab])
+  }, [activeTab, debouncedSearch])
 
   const filteredTools = useMemo(() => {
     if (!selectedTags.length) return tools
@@ -121,10 +130,37 @@ function Feed() {
       <PageHeader
         eyebrow="Library"
         title="Your tool feed"
-        subtitle="One card per unique tool. Expand for details, filter by tag or status."
+        subtitle="One card per unique tool. Search by name or keyword, filter by tag or status."
       />
 
       <FilterTabs activeTab={activeTab} counts={counts} onChange={setActiveTab} />
+      <div className="mb-6 animate-fade-up">
+        <label htmlFor="tool-search" className="sr-only">
+          Search tools
+        </label>
+        <div className="relative">
+          <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-faint" aria-hidden>
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+          </span>
+          <input
+            id="tool-search"
+            type="search"
+            name="q"
+            data-testid="tool-search"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="Search tools (name, description, tags)…"
+            autoComplete="off"
+            className="w-full min-h-[48px] rounded-xl border border-stroke bg-elevated/80 py-3 pl-11 pr-4 text-sm text-ink placeholder:text-ink-faint outline-none ring-0 transition focus-visible:border-accent/50 focus-visible:ring-2 focus-visible:ring-accent/30"
+          />
+        </div>
+      </div>
       <TagFilter allTags={allTags} selectedTags={selectedTags} onToggle={toggleTag} onClear={clearTags} />
       {loading && <LoadingGrid />}
       {error && (
@@ -139,9 +175,11 @@ function Feed() {
         >
           <p className="font-display text-lg font-semibold text-ink">Nothing matches</p>
           <p className="mx-auto mt-2 max-w-sm text-sm text-ink-muted">
-            {selectedTags.length > 0
-              ? 'Try clearing tag filters or pick another tab.'
-              : 'No tools in this tab yet. Ingest a reel or switch filters.'}
+            {debouncedSearch
+              ? 'No tools match this search. Try different keywords or clear the search box.'
+              : selectedTags.length > 0
+                ? 'Try clearing tag filters or pick another tab.'
+                : 'No tools in this tab yet. Ingest a reel or switch filters.'}
           </p>
         </div>
       )}

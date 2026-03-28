@@ -70,6 +70,26 @@ def _build_merged_tools() -> list[dict]:
     return merged
 
 
+def tool_matches_search(tool: dict, q: str) -> bool:
+    """Case-insensitive substring match on name, description fields, tags, and notes."""
+    needle = (q or "").strip().lower()
+    if not needle:
+        return True
+    text_fields = (
+        tool.get("name"),
+        tool.get("functionality"),
+        tool.get("problem_solved"),
+        tool.get("notes"),
+    )
+    for raw in text_fields:
+        if raw is not None and needle in str(raw).lower():
+            return True
+    for tag in tool.get("tags") or []:
+        if tag and needle in str(tag).lower():
+            return True
+    return False
+
+
 def _apply_cache_headers(response: Response) -> None:
     for k, v in _NO_STORE.items():
         response.headers[k] = v
@@ -103,7 +123,11 @@ def list_all_tags(response: Response):
 
 
 @router.get("")
-def list_tools(response: Response, status: str = Query(default="all")):
+def list_tools(
+    response: Response,
+    status: str = Query(default="all"),
+    q: str | None = Query(default=None, description="Search name, description, tags, notes (case-insensitive)"),
+):
     if status not in {"to_explore", "implemented", "not_interested", "all"}:
         raise HTTPException(status_code=400, detail="Invalid status filter")
 
@@ -114,6 +138,8 @@ def list_tools(response: Response, status: str = Query(default="all")):
         filtered = merged
     else:
         filtered = [m for m in merged if m["status"] == status]
+    if q and q.strip():
+        filtered = [m for m in filtered if tool_matches_search(m, q)]
     # Supabase returns UUID/datetime objects; JSONResponse must not 500 on encode.
     return jsonable_encoder(filtered)
 
