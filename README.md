@@ -2,75 +2,45 @@
 
 ## Objective
 
-**Turn Instagram Reels about AI tools into a searchable, personal inbox you control.**  
-Share a Reel URL (iOS Shortcut or webhook), and the pipeline downloads audio, transcribes it, extracts structured tool records with Claude, deduplicates against what you already have in Supabase, and shows everything in a small **mobile-first** web app where you mark items as *to explore*, *implemented*, or *not interested*.
+**Capture AI tools mentioned in Instagram Reels and turn them into a searchable list you can triage in a browser.**  
+Send a Reel URL (iOS Shortcut sharing the link, or a direct `POST` to the webhook). The service downloads audio, transcribes it, asks Claude to extract structured tool records, merges duplicates in **Supabase**, and serves a small web app where you mark each tool as *to explore*, *implemented*, or *not interested*.
 
-This repo is a **personal** full-stack tracker—not a generic scraper product. It is built to stay cheap, low-maintenance, and easy to extend in code.
+This is a **personal** project: one owner, service-role access to the database, no multi-user auth. The goal is low cost, low maintenance, and logic you can change in code.
 
 ---
 
-## Screenshots & demo
+## How it works
 
-### From Instagram → your backend (iOS)
+1. **Input** — You share a Reel URL to your Shortcut (or call the webhook from `curl`). The backend receives `POST /api/webhook/reel` with the URL and a shared secret.
+2. **Pipeline** — Audio is pulled with **yt-dlp**, transcribed with **AssemblyAI**, and structured into tool rows (name, description, tags, etc.) with the **Anthropic** API. Rows are deduplicated against existing tools in Postgres.
+3. **Storage** — **Supabase** holds videos, tools, links between them, and your per-tool status/notes.
+4. **UI** — **React** (Vite + Tailwind): **Overview** shows recent ingestion metrics; **Tools** lists the library with status tabs, **tag filters**, a **search** box (backed by `GET /api/tools?q=…`), and links to each source Reel / transcript where applicable.
 
-Open a Reel, tap **Share**, choose **Share to…**, then pick **Track AI Reels** from the share sheet (Shortcut). The shortcut `POST`s the Reel URL to `/api/webhook/reel`.
+---
 
-| Share sheet (open share) | Pick “Track AI Reels” |
-|--------------------------|------------------------|
+## Screenshots
+
+### From Instagram to your API (iOS)
+
+From a Reel, open **Share** → **Share to…** → choose **Track AI Reels** (Shortcuts). The shortcut posts the URL to `/api/webhook/reel` on your deployed backend.
+
+| Share | Choose the shortcut |
+|------|----------------------|
 | ![Instagram Share sheet](docs/screenshots/instagram-share-step1.png) | ![Track AI Reels in share sheet](docs/screenshots/instagram-share-track-shortcut.png) |
 
-**Shortcut wiring** — receive URLs from the Share Sheet, call your deployed API, show the JSON response:
+**Shortcut** — Receive URLs from the Share Sheet, `POST` to your API, show the response:
 
 ![Track AI Reels shortcut](docs/screenshots/ios-shortcut-track-ai-reels.png)
 
-### Web app (Overview + Tools + search)
+### Web app
 
-The UI is dark-themed: **Overview** for 7-day metrics and tag/triage mix; **Tools** for the library with status tabs, **search** (name / description / tags), and tag filters.
+**Overview** — 7-day ingestion and tag/triage summary. **Tools** — library with status tabs, search, and tags.
 
-| Overview dashboard | Tools library |
-|--------------------|---------------|
-| ![Overview dashboard](docs/screenshots/web-overview-dashboard.png) | ![Tools library with search and cards](docs/screenshots/web-tools-library.png) |
+| Overview | Tools |
+|----------|-------|
+| ![Overview dashboard](docs/screenshots/web-overview-dashboard.png) | ![Tools library](docs/screenshots/web-tools-library.png) |
 
-### Screen recording (Playwright)
-
-This GIF is generated with **Playwright** (mocked API) so it stays reproducible without a live backend. Regenerate the video + GIF locally:
-
-```bash
-cd frontend
-npm install
-npx playwright install chromium   # once per machine
-npm run record:demo                 # builds with VITE_API_BASE_URL for mocks, runs e2e/demo.spec.js
-# Optional: convert the recorded .webm under test-results/ to docs/screenshots/demo.gif (requires ffmpeg)
-../scripts/record-demo-gif.sh
-```
-
-![AI Tools Tracker demo (Overview → Tools → search)](docs/screenshots/demo.gif)
-
----
-
-## What you get
-
-- Webhook ingestion of an Instagram Reel URL (+ optional Telegram bot forwarding).
-- Audio via **yt-dlp** → transcription via **AssemblyAI** → extraction via **Claude** → **Supabase** Postgres with deduplication.
-- React UI: **Overview** dashboard, **Tools** feed with **search** (`q` query + search box), status tabs, tags, per-tool actions, and video detail with source link and transcript.
-
----
-
-## Table of contents
-
-1. [Screenshots & demo](#screenshots--demo)
-2. [Tech stack](#tech-stack)
-3. [Repository layout](#repository-layout)
-4. [Prerequisites](#1-prerequisites)
-5. [Supabase setup](#2-supabase-setup-from-scratch)
-6. [Backend setup](#3-backend-setup)
-7. [Frontend setup](#4-frontend-setup)
-8. [API smoke test (webhook)](#5-api-smoke-test-webhook--after-diagnostics-pass)
-9. [iOS Shortcut](#6-ios-shortcut-setup)
-10. [Optional Telegram](#7-optional-telegram-fallback)
-11. [Tests](#8-tests)
-12. [Deployment](#9-deployment)
-13. [v2 roadmap](#v2-roadmap)
+![AI Tools Tracker demo — Overview, Tools, and search](docs/screenshots/demo.gif)
 
 ---
 
@@ -81,7 +51,7 @@ npm run record:demo                 # builds with VITE_API_BASE_URL for mocks, r
 | Backend | FastAPI · Python 3.12 · `uv` |
 | Database | Supabase (Postgres) |
 | Frontend | React · Vite · Tailwind CSS |
-| Hosting | Railway (API) · Vercel (UI) |
+| Hosting (typical) | Railway (API) · Vercel (UI) |
 
 ---
 
@@ -89,37 +59,50 @@ npm run record:demo                 # builds with VITE_API_BASE_URL for mocks, r
 
 | Path | Purpose |
 |------|---------|
-| `backend/` | API, ingestion, extraction, deduplication, SQL migrations |
-| `frontend/` | React UI (Overview, Tools, video detail); `e2e/` = Playwright demo (`npm run record:demo`) |
-| `docs/screenshots/` | README images + `demo.gif` (Playwright + ffmpeg) |
-| `scripts/record-demo-gif.sh` | Converts Playwright `.webm` → `docs/screenshots/demo.gif` |
-| `CLAUDE.md` | Canonical instructions for Claude Code / agents |
-| `agent.md` | Pointer for generic agents |
-| `DEPLOYMENT.md` | Railway + Vercel + iOS Shortcut checklist |
+| `backend/` | FastAPI app, webhook, ingestion, transcription, extraction, dedup, SQL migrations |
+| `frontend/` | React UI (Overview, Tools, video detail) |
+| `docs/screenshots/` | Images and demo GIF for this README |
+| `scripts/record-demo-gif.sh` | Optional: convert a recorded browser video to `docs/screenshots/demo.gif` (see `ffmpeg` in script) |
+| `CLAUDE.md` | Project instructions for AI coding agents |
+| `agent.md` | Short pointer for generic agents |
+| `DEPLOYMENT.md` | Production deploy (Railway + Vercel + Shortcut) |
+
+---
+
+## Table of contents
+
+1. [How it works](#how-it-works)
+2. [Screenshots](#screenshots)
+3. [Tech stack](#tech-stack)
+4. [Repository layout](#repository-layout)
+5. [Prerequisites](#1-prerequisites)
+6. [Supabase (database)](#2-supabase-setup-from-scratch)
+7. [Backend API](#3-backend-setup)
+8. [Frontend](#4-frontend-setup)
+9. [Webhook smoke test](#5-api-smoke-test-webhook--after-diagnostics-pass)
+10. [iOS Shortcut](#6-ios-shortcut-setup)
+11. [Optional Telegram](#7-optional-telegram-fallback)
+12. [Tests](#8-tests)
+13. [Deployment](#9-deployment)
+14. [Roadmap](#v2-roadmap)
 
 ---
 
 ## 1) Prerequisites
 
-- Python 3.12+ (project pins 3.12 in backend)
+- Python 3.12+ (backend targets 3.12)
 - Node.js 18+
-- Accounts: Supabase, Anthropic, AssemblyAI, Railway, Vercel; optional Telegram bot
+- Accounts / keys: Supabase, Anthropic, AssemblyAI; hosting for API and UI (e.g. Railway, Vercel); optional Telegram bot
 
 ---
 
 ## 2) Supabase Setup (From Scratch)
 
-1. Create a new Supabase project.
-2. Open **SQL Editor** and run `backend/db/migrations/001_initial.sql`, then `002_processing_error.sql` (adds `videos.processing_error` for debugging failed background jobs).
-3. Enable RLS on all app tables (`videos`, `tools`, `video_tools`, `user_interactions`).
-4. Create permissive policy for service-role-backed backend usage (personal app pattern).
-   - Example policy shape:
-     - Policy name: `service_role_all`
-     - Action: all (`select`, `insert`, `update`, `delete`)
-     - Using / Check: `auth.role() = 'service_role'`
-5. Copy:
-   - Project URL → `SUPABASE_URL`
-   - Service role key → `SUPABASE_SERVICE_KEY`
+1. Create a Supabase project.
+2. In **SQL Editor**, run `backend/db/migrations/001_initial.sql`, then `002_processing_error.sql` (adds `videos.processing_error` for failed jobs).
+3. Enable RLS on `videos`, `tools`, `video_tools`, `user_interactions`.
+4. **Personal-app pattern:** add a policy so the backend (using the **service role** key) can read/write all rows, e.g. name `service_role_all`, actions all, condition `auth.role() = 'service_role'`.
+5. Copy **Project URL** → `SUPABASE_URL`, **service role key** → `SUPABASE_SERVICE_KEY` in `backend/.env`.
 
 ---
 
@@ -141,44 +124,41 @@ TELEGRAM_BOT_TOKEN=
 WEBHOOK_SECRET=
 ```
 
-Run backend:
+Run locally:
 
 ```bash
 uv run uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-Health check:
+Health:
 
 ```bash
 curl http://localhost:8000/health
 ```
 
-### Pipeline preflight (do this before the webhook)
+### Before you trust the full pipeline
 
-Run these **in order** so failures are easy to localize:
+Run in order:
 
-| Step | What | Command / URL |
+| Step | What | URL / command |
 |------|------|----------------|
 | 1 | Health | `GET http://localhost:8000/health` |
-| 2 | **AssemblyAI** (key + network, no download) | `GET http://localhost:8000/api/diagnostics/assemblyai` |
-| 3 | Full checklist JSON | `GET http://localhost:8000/api/diagnostics/summary` |
-| 4 | Ingest a Reel | `POST /api/webhook/reel` (see below) |
-
-Examples:
+| 2 | AssemblyAI key | `GET http://localhost:8000/api/diagnostics/assemblyai` |
+| 3 | Full diagnostics JSON | `GET http://localhost:8000/api/diagnostics/summary` |
+| 4 | Ingest a Reel | `POST /api/webhook/reel` (see [§5](#5-api-smoke-test-webhook--after-diagnostics-pass)) |
 
 ```bash
 curl -s http://localhost:8000/api/diagnostics/assemblyai | python3 -m json.tool
 curl -s http://localhost:8000/api/diagnostics/summary | python3 -m json.tool
 ```
 
-Interpretation:
+- If `/api/diagnostics/assemblyai` returns `"ok": true`, the transcription step is safe to run.
+- If `"ok": false`, fix `ASSEMBLYAI_API_KEY` in `.env` (no stray spaces), restart uvicorn, retry step 2.
 
-- `"ok": true` on `/api/diagnostics/assemblyai` → key is accepted by AssemblyAI; safe to run the full pipeline.
-- `"ok": false` → read `message` and `hint`; fix `ASSEMBLYAI_API_KEY` in `.env` (no extra quotes/spaces), restart uvicorn, retry step 2.
+### Tools API (list + search)
 
-### Tools list + search
-
-`GET /api/tools?status=to_explore` returns tools for that triage tab. Add an optional **`q`** parameter to filter by substring on **name**, **functionality**, **problem_solved**, **tags**, and **notes** (case-insensitive), for example:
+- `GET /api/tools?status=to_explore|implemented|not_interested|all` — tools in that triage bucket.
+- Optional `q` — case-insensitive substring on name, functionality, problem_solved, tags, and notes.
 
 ```bash
 curl -s "http://localhost:8000/api/tools?status=all&q=mcp" | python3 -m json.tool
@@ -194,7 +174,7 @@ Create `frontend/.env.local`:
 VITE_API_BASE_URL=http://localhost:8000
 ```
 
-Run frontend:
+Run:
 
 ```bash
 cd frontend
@@ -202,16 +182,15 @@ npm install
 npm run dev
 ```
 
-### If the UI looks unchanged (old counts, no “Watch Reel”)
+### If the UI looks stale or wrong
 
-1. **Confirm the browser talks to the backend you think** — open DevTools → Network, reload `/`, and check the request host for `GET /api/tools`. It must match where you run FastAPI (usually `localhost:8000`). If `VITE_API_BASE_URL` points at **Railway/Vercel**, deploy or pull latest code there, or set `.env.local` to `http://localhost:8000` and **restart** `npm run dev` (Vite reads env only at startup).
-2. **Hard refresh** the tab: macOS **Cmd+Shift+R** (or disable cache in DevTools and reload).
-3. **Restart the Vite dev server** after `git pull` or API/frontend changes: stop `npm run dev` (**Ctrl+C**) and start it again — Vite only reads `.env.local` at startup, and a full restart avoids a stuck HMR bundle.
-4. **Restart uvicorn** after pulling backend changes (`--reload` usually picks up `routers/tools.py` automatically).
+1. **Confirm the API host** — DevTools → Network → `GET /api/tools` must hit the FastAPI instance you expect (`localhost:8000` in dev). `VITE_API_BASE_URL` is read at **Vite startup**; change `.env.local` and restart `npm run dev`.
+2. **Hard refresh** the tab (e.g. Cmd+Shift+R on macOS).
+3. **Restart the dev server** after pulls or env changes; `uvicorn --reload` usually picks up backend edits.
 
-### “Seen in 2 videos” but only one Reel
+### Duplicate “same Reel” rows
 
-Instagram URLs often differ only by `?igsh=…` or a trailing `/`. Those are **two rows** in `videos` (unique on full URL) but the **same reel**. The API deduplicates by canonical path for counts and **Watch Reel** links. To clean the DB, delete the duplicate `videos` row you don’t need (CASCADE removes orphan `video_tools` links).
+Two saved URLs that differ only by `?igsh=…` or a trailing `/` can be two `videos` rows but the same Reel. The API deduplicates canonical reel URLs for counts and “Watch Reel” links; you can delete the extra `videos` row in Supabase if you want a clean DB (CASCADE cleans `video_tools`).
 
 ---
 
@@ -235,29 +214,18 @@ Expected:
 
 ## 6) iOS Shortcut Setup
 
-1. Open Shortcuts app and create shortcut: `Track AI Reels`.
-2. Configure first block:
-   - Receive input: `URLs`
-   - Source: `Share Sheet`
-   - If no input: `Continue`
-3. Add **Get Shortcut Input**.
-4. Add **Get Contents of URL**:
-   - URL: `https://your-backend-domain/api/webhook/reel`
-   - Method: `POST`
-   - Body: `JSON`
-   - Field `url`: Shortcut Input
-   - Field `secret`: your webhook secret
-5. Add **Show Content**.
-6. Enable **Show in Share Sheet** in shortcut details.
+1. Shortcuts → new shortcut **Track AI Reels**.
+2. First block: receive **URLs** from **Share Sheet**; if no input → **Continue**.
+3. **Get Shortcut Input**.
+4. **Get Contents of URL** — `POST` `https://<your-backend>/api/webhook/reel`, JSON body: `url` = Shortcut Input, `secret` = your webhook secret.
+5. **Show Content**.
+6. Shortcut details → **Show in Share Sheet**.
 
 ---
 
 ## 7) Optional Telegram Fallback
 
-Telegram integration is optional and only needed if iOS Shortcut is not enough.
-
-- Bot logic file: `backend/services/telegram_bot.py`
-- It detects `instagram.com/reel/...` links and forwards them to webhook.
+Optional second input path: `backend/services/telegram_bot.py` forwards `instagram.com/reel/...` links to the same webhook logic.
 
 ---
 
@@ -277,7 +245,7 @@ cd frontend
 npm test
 ```
 
-End-to-end (Playwright — builds `frontend` with `VITE_API_BASE_URL=http://127.0.0.1:8000`, mocks API, records video):
+Optional end-to-end demo recording (builds `frontend` with a fixed API base URL for the test harness):
 
 ```bash
 cd frontend
@@ -288,19 +256,19 @@ npm run record:demo
 
 ## 9) Deployment
 
-**Step-by-step (Railway + Vercel + iOS Shortcut):** see **[DEPLOYMENT.md](./DEPLOYMENT.md)** in the repo root.
+Full checklist: **[DEPLOYMENT.md](./DEPLOYMENT.md)**.
 
 Summary:
 
-- **Railway:** Either leave **root directory empty** and use the repo-root **`Dockerfile`** (builds `backend/`), **or** set root directory to **`backend`** and use **`backend/Dockerfile`**. See **DEPLOYMENT.md** if Railpack fails on the monorepo.
-- **Vercel:** Root directory `frontend`, `VITE_API_BASE_URL=https://<your-railway-host>` (no trailing slash).
+- **Railway (API):** repo-root **`Dockerfile`** with empty root directory, **or** root directory **`backend`** + `backend/Dockerfile`. See **DEPLOYMENT.md** if Railpack fails on the monorepo.
+- **Vercel (UI):** root directory `frontend`; `VITE_API_BASE_URL=https://<your-api-host>` (no trailing slash).
 - **Procfile** (non-Docker): `web: uv run uvicorn main:app --host 0.0.0.0 --port $PORT`
 
 ---
 
 ## v2 Roadmap
 
-- Add persistent retry queue abstraction (`JobStore` + `RetryPolicy`) beyond in-process retry.
-- Add auth middleware for secured `/api` access if app expands beyond personal use.
-- Add configurable UI density preference toggle.
-- Add optional tag governance flow for novel tags.
+- Persistent retry queue (`JobStore` + `RetryPolicy`) beyond in-process retry.
+- Auth middleware if the app is no longer single-owner.
+- UI density toggle.
+- Optional tag governance for new tags.
