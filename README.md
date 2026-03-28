@@ -32,6 +32,10 @@ From a Reel, open **Share** → **Share to…** → choose **Track AI Reels** (S
 
 ![Track AI Reels shortcut](docs/screenshots/ios-shortcut-track-ai-reels.png)
 
+**Home screen** — Add the deployed site to your iPhone home screen (Safari → Share → *Add to Home Screen*) for one-tap access to the web app alongside the Reel-capture shortcut:
+
+![AI Tools Tracker home screen shortcut](docs/screenshots/ios-home-shortcut-webapp.png)
+
 ### Web app
 
 **Overview** — 7-day ingestion and tag/triage summary. **Tools** — library with status tabs, search, and tags.
