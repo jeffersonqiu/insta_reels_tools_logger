@@ -4,7 +4,7 @@ from typing import Any
 
 from db.client import get_supabase
 from services.deduplicator import upsert_tools
-from services.downloader import download_reel_audio
+from services.downloader import cleanup_reel_audio, download_reel_audio
 from services.extractor import extract_knowledge
 from services.knowledge import upsert_knowledge_item
 from services.transcriber import transcribe_audio_file
@@ -28,17 +28,27 @@ def _mark_failed(supabase: Any, video_id: str, message: str) -> None:
 def process_reel(video_id: str, canonical_url: str) -> dict[str, Any]:
     """Process an already-persisted `videos` row: queued -> processing -> completed | failed."""
     supabase = get_supabase()
+    claimed = False
+    audio_path = None
     try:
-        row = supabase.table("videos").select("attempt_count").eq("id", video_id).limit(1).execute().data
-        attempts = ((row[0].get("attempt_count") if row else 0) or 0) + 1
-        supabase.table("videos").update(
+        row = supabase.table("videos").select("attempt_count,status").eq("id", video_id).limit(1).execute().data
+        if not row or row[0].get("status") != "queued":
+            return {"video_id": video_id, "status": "not_queued"}
+        attempts = (row[0].get("attempt_count") or 0) + 1
+        # Only one caller can claim this particular queued attempt, including
+        # during the transition from Railway background tasks to Actions.
+        claimed_rows = supabase.table("videos").update(
             {
                 "status": "processing",
                 "attempt_count": attempts,
                 "processing_started_at": _now(),
                 "processing_error": None,
+                "completed_at": None,
             }
-        ).eq("id", video_id).execute()
+        ).eq("id", video_id).eq("status", "queued").eq("attempt_count", attempts - 1).execute().data
+        if not claimed_rows:
+            return {"video_id": video_id, "status": "not_queued"}
+        claimed = True
         logger.info("video_id=%s canonical_url=%s state=processing attempt=%s", video_id, canonical_url, attempts)
 
         audio_path, video_date, caption = download_reel_audio(canonical_url)
@@ -71,7 +81,11 @@ def process_reel(video_id: str, canonical_url: str) -> dict[str, Any]:
         logger.exception(
             "video_id=%s canonical_url=%s state=failed failure_type=%s", video_id, canonical_url, type(exc).__name__
         )
-        _mark_failed(supabase, video_id, msg)
+        if claimed:
+            _mark_failed(supabase, video_id, msg)
         # Do not re-raise: BackgroundTasks would log "Exception in ASGI application"
         # for expected failures (e.g. Instagram rate limits / yt-dlp download errors).
         return {"error": msg, "video_id": video_id}
+    finally:
+        if audio_path:
+            cleanup_reel_audio(audio_path)

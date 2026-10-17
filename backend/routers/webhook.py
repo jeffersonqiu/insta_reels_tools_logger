@@ -35,5 +35,6 @@ def receive_reel(payload: ReelWebhookRequest, background_tasks: BackgroundTasks)
     else:
         return {"status": "already_exists", "video_id": video_id, "processing_status": video["status"]}
 
-    background_tasks.add_task(process_reel, video_id, canonical_url)
+    if settings.processing_mode == "inline":
+        background_tasks.add_task(process_reel, video_id, canonical_url)
     return {"status": "queued", "video_id": video_id}

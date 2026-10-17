@@ -244,6 +244,8 @@ Apply `backend/db/migrations/004_durable_ingestion.sql` in the Supabase SQL Edit
 
 Project V2 Step 6 also requires `backend/db/migrations/005_knowledge_items.sql` before deployment. It adds knowledge items while preserving the Tools API. Read [the schema, endpoints, verification SQL, and safe rollout order](docs/step-6-knowledge-items.md).
 
+Project V2 Step 7 adds a bounded GitHub Actions queue worker and temporary Instagram-cookie authentication. Keep `PROCESSING_MODE=inline` until the repository secrets and a manual dry run are ready, then follow [the worker cutover instructions](docs/step-7-processing.md). No additional database migration is needed.
+
 ---
 
 ## 6) iOS Shortcut Setup

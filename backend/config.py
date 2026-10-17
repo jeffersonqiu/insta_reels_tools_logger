@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -21,6 +23,8 @@ class Settings(BaseSettings):
     telegram_bot_token: str = ""
     webhook_secret: str = ""
     cors_allow_origins: str = "*"
+    processing_mode: Literal["inline", "github_actions"] = "inline"
+    instagram_cookies_b64: str = ""
 
     @field_validator(
         "supabase_url",
@@ -29,6 +33,7 @@ class Settings(BaseSettings):
         "anthropic_api_key",
         "telegram_bot_token",
         "webhook_secret",
+        "instagram_cookies_b64",
         mode="before",
     )
     @classmethod

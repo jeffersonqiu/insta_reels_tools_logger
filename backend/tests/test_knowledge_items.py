@@ -38,7 +38,7 @@ class _Q:
         self.db, self.name, self.op, self.payload, self.filters = db, name, "select", None, []
         self.conflict = None
         self._limit = None
-        self._order = None
+        self._orders = []
         self.columns = "*"
         self.ignore_duplicates = False
 
@@ -67,12 +67,16 @@ class _Q:
         self.filters.append(lambda row: row.get(c) in values)
         return self
 
+    def lt(self, c, value):
+        self.filters.append(lambda row: row.get(c) is not None and row[c] < value)
+        return self
+
     def limit(self, n):
         self._limit = n
         return self
 
     def order(self, col, desc=False):
-        self._order = (col, desc)
+        self._orders.append((col, desc))
         return self
 
     def execute(self):
@@ -97,11 +101,11 @@ class _Q:
                 r.update(self.payload)
             return _R([dict(r) for r in match])
         out = [dict(r) for r in match]
-        if self._order:
-            out.sort(key=lambda r: r.get(self._order[0]) or "", reverse=self._order[1])
+        for col, desc in reversed(self._orders):
+            out.sort(key=lambda r: r.get(col) or "", reverse=desc)
         out = out[: self._limit] if self._limit else out
         if self.columns != "*":
-            out = [{key: row.get(key) for key in self.columns.split(",")} for row in out]
+            out = [{key.strip(): row.get(key.strip()) for key in self.columns.split(",")} for row in out]
         return _R(out)
 
 
@@ -260,6 +264,7 @@ def test_retry_updates_same_knowledge_item(db, monkeypatch):
     changed.title = "Updated title"
     monkeypatch.setattr(processing, "extract_knowledge", lambda t, caption=None: changed)
     monkeypatch.setattr(processing, "upsert_tools", lambda *args: [])
+    db.tables["videos"][0]["status"] = "queued"  # webhook resubmission wins the failed -> queued transition
     processing.process_reel("vid-1", "u")
 
     items = db.tables["knowledge_items"]
@@ -352,6 +357,7 @@ def test_reprocessing_preserves_tool_status_and_existing_apis(db, monkeypatch, s
     monkeypatch.setattr(processing, "extract_knowledge", lambda *args, **kwargs: _knowledge([tool]))
 
     for _ in range(2):
+        db.tables["videos"][0]["status"] = "queued"
         assert "error" not in processing.process_reel("vid-1", "https://www.instagram.com/reel/A/")
 
     assert comparisons == [("tool-1", "ruflo"), ("tool-1", "ruflo")]

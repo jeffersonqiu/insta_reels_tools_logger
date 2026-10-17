@@ -1,0 +1,70 @@
+name: Process queued Reels
+
+on:
+  schedule:
+    # Offset from the top of the hour, when scheduled Actions are often busiest.
+    - cron: "3-59/5 * * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Inspect the queue without processing or writes"
+        type: boolean
+        default: true
+      batch_size:
+        description: "Maximum queued Reels to process (1–10)"
+        type: number
+        default: 3
+      video_id:
+        description: "Optional UUID of one queued video"
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: reel-processing
+  cancel-in-progress: false
+
+jobs:
+  process:
+    # Schedules stay disabled until credentials and the queue-only backend are ready.
+    if: github.event_name == 'workflow_dispatch' || vars.PROCESSING_WORKER_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: "0.13.0"
+          python-version: "3.12"
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - name: Install media dependencies
+        if: github.event_name != 'workflow_dispatch' || inputs.dry_run != true
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg
+      - run: uv sync --frozen
+      - name: Process a bounded queue batch
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          ASSEMBLYAI_API_KEY: ${{ secrets.ASSEMBLYAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          INSTAGRAM_COOKIES_B64: ${{ secrets.INSTAGRAM_COOKIES_B64 }}
+          WORKER_BATCH_SIZE: ${{ github.event_name == 'workflow_dispatch' && format('{0}', inputs.batch_size) || '3' }}
+          WORKER_DRY_RUN: ${{ inputs.dry_run && 'true' || 'false' }}
+          WORKER_VIDEO_ID: ${{ inputs.video_id }}
+          PROCESSING_MODE: github_actions
+        shell: bash
+        run: |
+          args=(--limit "$WORKER_BATCH_SIZE")
+          if [[ "$WORKER_DRY_RUN" == "true" ]]; then args+=(--dry-run); fi
+          if [[ -n "$WORKER_VIDEO_ID" ]]; then args+=(--video-id "$WORKER_VIDEO_ID"); fi
+          uv run --frozen python scripts/process_queue.py "${args[@]}"

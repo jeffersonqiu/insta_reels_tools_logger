@@ -4,9 +4,16 @@ Pre-flight checks before running the full ingestion pipeline.
 
 from fastapi import APIRouter
 
+from config import settings
 from services.assemblyai_check import check_assemblyai_connection
 
 router = APIRouter(prefix="/diagnostics", tags=["diagnostics"])
+
+
+@router.get("/processing")
+def processing_status():
+    """Read the deployed queue mode without submitting a Reel or exposing credentials."""
+    return {"mode": settings.processing_mode}
 
 
 @router.get("/assemblyai")

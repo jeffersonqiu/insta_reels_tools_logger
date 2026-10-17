@@ -10,19 +10,18 @@ class TranscriptionError(Exception):
 
 
 def transcribe_audio_file(audio_path: str) -> str:
-    if not settings.assemblyai_api_key:
-        raise TranscriptionError("ASSEMBLYAI_API_KEY is missing.")
-
-    aai.settings.api_key = settings.assemblyai_api_key
-
-    config = aai.TranscriptionConfig(speech_models=["universal-3-pro"])
-    transcriber = aai.Transcriber(config=config)
-
     try:
+        if not settings.assemblyai_api_key:
+            raise TranscriptionError("ASSEMBLYAI_API_KEY is missing.")
+        aai.settings.api_key = settings.assemblyai_api_key
+        config = aai.TranscriptionConfig(speech_models=["universal-3-pro"])
+        transcriber = aai.Transcriber(config=config)
         transcript = transcriber.transcribe(audio_path)
         if transcript.status == aai.TranscriptStatus.error:
             raise TranscriptionError(f"AssemblyAI failed: {transcript.error}")
         return transcript.text or ""
+    except TranscriptionError:
+        raise
     except Exception as exc:
         raise TranscriptionError(f"Failed to transcribe audio: {exc}") from exc
     finally:
