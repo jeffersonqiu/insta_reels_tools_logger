@@ -308,3 +308,5 @@ Summary:
 - Auth middleware if the app is no longer single-owner.
 - UI density toggle.
 - Optional tag governance for new tags.
+
+Project V2 Step 8 adds **Library** (`/library`) and knowledge-item details (`/items/:id`), with search, tag filters, source text, repositories, ideas, and action items. Existing Tools and Overview routes remain available. No new migration is required. See [Library behavior and verification](docs/step-8-library.md).

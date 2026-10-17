@@ -41,6 +41,7 @@ class _Q:
         self._orders = []
         self.columns = "*"
         self.ignore_duplicates = False
+        self._offset = 0
 
     def select(self, columns="*"):
         self.columns = columns
@@ -79,6 +80,10 @@ class _Q:
         self._orders.append((col, desc))
         return self
 
+    def range(self, start, end):
+        self._offset, self._limit = start, end - start + 1
+        return self
+
     def execute(self):
         rows = self.db.tables.setdefault(self.name, [])
         match = [r for r in rows if all(predicate(r) for predicate in self.filters)]
@@ -103,6 +108,7 @@ class _Q:
         out = [dict(r) for r in match]
         for col, desc in reversed(self._orders):
             out.sort(key=lambda r: r.get(col) or "", reverse=desc)
+        out = out[self._offset:]
         out = out[: self._limit] if self._limit else out
         if self.columns != "*":
             out = [{key.strip(): row.get(key.strip()) for key in self.columns.split(",")} for row in out]
@@ -415,6 +421,25 @@ def test_list_items_empty(monkeypatch):
     monkeypatch.setattr("routers.items.get_supabase", lambda: FakeSupabase())
     r = TestClient(app).get("/api/items")
     assert r.status_code == 200 and r.json() == []
+
+
+def test_item_pagination_boundaries(api):
+    assert [item['id'] for item in api.get('/api/items?limit=1&offset=1').json()] == [OLD_ITEM_ID]
+    assert api.get('/api/items?offset=2').json() == []
+    assert api.get('/api/items?offset=-1').status_code == 422
+    assert api.get('/api/items?limit=201').status_code == 422
+
+
+def test_item_pagination_has_stable_order_for_equal_timestamps(monkeypatch):
+    fake = FakeSupabase()
+    fake.tables['knowledge_items'] = [
+        {'id': OLD_ITEM_ID, 'created_at': '2026-01-01T00:00:00+00:00'},
+        {'id': NEW_ITEM_ID, 'created_at': '2026-01-01T00:00:00+00:00'},
+    ]
+    monkeypatch.setattr('routers.items.get_supabase', lambda: fake)
+    api = TestClient(app)
+    assert api.get('/api/items?limit=1').json()[0]['id'] == NEW_ITEM_ID
+    assert api.get('/api/items?limit=1&offset=1').json()[0]['id'] == OLD_ITEM_ID
 
 
 def test_get_item_includes_source_video_fields(api):

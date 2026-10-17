@@ -12,14 +12,19 @@ _VIDEO_FIELDS = "id,instagram_url,caption,transcript,video_created_at,status"
 
 
 @router.get("")
-def list_items(response: Response, limit: int = Query(50, ge=1, le=200)):
+def list_items(
+    response: Response,
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+):
     response.headers.update(_NO_STORE)
     supabase = get_supabase()
     rows = (
         supabase.table("knowledge_items")
         .select("*")
         .order("created_at", desc=True)
-        .limit(limit)
+        .order("id", desc=True)
+        .range(offset, offset + limit - 1)
         .execute()
         .data
         or []

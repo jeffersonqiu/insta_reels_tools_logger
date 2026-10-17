@@ -1,8 +1,10 @@
 import React from 'react'
-import { Link, NavLink, Route, Routes } from 'react-router-dom'
+import { Link, NavLink, Route, Routes, useLocation } from 'react-router-dom'
 import Dashboard from './pages/Dashboard'
 import Feed from './pages/Feed'
 import VideoDetail from './pages/VideoDetail'
+import Library from './pages/Library'
+import ItemDetail from './pages/ItemDetail'
 
 function LogoMark({ className = 'h-9 w-9' }) {
   return (
@@ -24,6 +26,7 @@ const navLinkClass = ({ isActive }) =>
   }`
 
 function App() {
+  const { pathname } = useLocation()
   return (
     <div className="min-h-screen text-ink">
       <header className="sticky top-0 z-20 border-b border-stroke bg-canvas-deep/90 backdrop-blur-xl">
@@ -45,6 +48,9 @@ function App() {
             </span>
           </Link>
           <nav className="flex flex-wrap gap-1 border-t border-stroke/60 pt-3 sm:border-t-0 sm:pt-0" aria-label="Main">
+            <NavLink to="/library" className={({ isActive }) => navLinkClass({ isActive: isActive || pathname.startsWith('/items/') })}>
+              Library
+            </NavLink>
             <NavLink to="/dashboard" className={navLinkClass} end={false}>
               Overview
             </NavLink>
@@ -59,6 +65,8 @@ function App() {
           <Route path="/" element={<Feed />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/videos/:id" element={<VideoDetail />} />
+          <Route path="/library" element={<Library />} />
+          <Route path="/items/:id" element={<ItemDetail />} />
         </Routes>
       </main>
     </div>

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 
 import client from '../api/client'
 import BarList from '../components/shell/BarList'
@@ -15,8 +15,8 @@ function SeriesChart({ series }) {
     return <p className="text-sm text-ink-muted">No activity in this window yet.</p>
   }
 
-  const maxV = useMemo(() => Math.max(...series.map((d) => d.videos_processed || 0), 0), [series])
-  const maxT = useMemo(() => Math.max(...series.map((d) => d.distinct_tools_linked || 0), 0), [series])
+  const maxV = Math.max(...series.map((d) => d.videos_processed || 0), 0)
+  const maxT = Math.max(...series.map((d) => d.distinct_tools_linked || 0), 0)
   const scaleMax = Math.max(maxV, maxT, 1)
 
   const barHeight = (n) => {

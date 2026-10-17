@@ -33,6 +33,7 @@ function TagFilter({ allTags, selectedTags, onToggle, onClear }) {
             <button
               key={tag}
               type="button"
+              aria-pressed={on}
               onClick={() => onToggle(tag)}
               className={`min-h-[40px] touch-manipulation rounded-lg border px-3 py-2 font-mono text-[11px] font-medium transition active:scale-[0.98] sm:min-h-0 sm:px-2.5 sm:py-1.5 ${
                 on
