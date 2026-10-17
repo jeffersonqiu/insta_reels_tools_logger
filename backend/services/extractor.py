@@ -3,7 +3,7 @@ import json
 from anthropic import Anthropic
 
 from config import settings
-from models.schemas import ToolExtraction
+from models.schemas import KnowledgeExtraction, ToolExtraction
 
 ALLOWED_TAGS = [
     "coding",
@@ -49,42 +49,65 @@ def _build_extraction_user_prompt(transcript: str, caption: str | None) -> str:
     return body
 
 
+SYSTEM_PROMPT = (
+    "You turn Instagram Reel content into a structured knowledge item.\n"
+    "You receive an audio transcript and an optional Instagram caption. Use only what they contain.\n"
+    f"{CAPTION_NAME_RULES}\n"
+    "The reel may be about anything (AI tools, software architecture, research, tutorials, products, design, "
+    "workflows). Always produce a useful knowledge item, even when no AI tool is present.\n"
+    "Return ONE JSON object with exactly these keys:\n"
+    "- title: short descriptive title\n"
+    "- summary: 2-4 sentence concise summary\n"
+    "- key_ideas: array of strings, the main takeaways\n"
+    "- tools: array of objects {name, functionality, problem_solved, tags} for each distinct AI tool or AI "
+    "product upgrade mentioned (functionality: 2-3 sentences; problem_solved: 1-2 concrete sentences for a "
+    "developer/AI practitioner). Use [] if none.\n"
+    "- repositories: array of objects {name, url, description} for GitHub repos or other named links/projects. "
+    "Set url to null unless a URL is explicitly present in the transcript or caption; never invent URLs. Use [] if none.\n"
+    "- concepts: array of strings, technical concepts or techniques explained\n"
+    "- action_items: array of strings, concrete things the viewer could try or do\n"
+    "- tags: array of strings\n"
+    f"Prefer tags from this list: {ALLOWED_TAGS}. If none fit, you may use a novel free-form tag.\n"
+    "Empty arrays are fine for any list. No markdown fences, no preamble."
+)
+
+
 def _call_claude(user_prompt: str, force_json_retry: bool = False) -> str:
     client = Anthropic(api_key=settings.anthropic_api_key)
-    retry_note = "\nIMPORTANT: return only raw JSON array output." if force_json_retry else ""
-    system_prompt = (
-        "You extract AI tool records from Reel content.\n"
-        "You may receive both an audio transcript and an optional Instagram caption.\n"
-        f"{CAPTION_NAME_RULES}\n"
-        "Identify all distinct AI tools or AI product upgrades mentioned in the reel.\n"
-        "Return only a JSON array of objects with keys: name, functionality, problem_solved, tags.\n"
-        f"Prefer tags from this list: {ALLOWED_TAGS}.\n"
-        "If no listed tag fits, you may use a novel free-form tag.\n"
-        "No markdown fences, no preamble."
-        + retry_note
-    )
+    retry_note = "\nIMPORTANT: return only the raw JSON object, nothing else." if force_json_retry else ""
     msg = client.messages.create(
         model="claude-sonnet-4-20250514",
-        max_tokens=3000,
-        system=system_prompt,
+        max_tokens=4000,
+        system=SYSTEM_PROMPT + retry_note,
         messages=[{"role": "user", "content": user_prompt}],
     )
     return "".join(block.text for block in msg.content if getattr(block, "text", None))
 
 
-def extract_tools_from_transcript(transcript: str, caption: str | None = None) -> list[ToolExtraction]:
+def _parse_knowledge(raw: str) -> KnowledgeExtraction:
+    payload = json.loads(raw)
+    if not isinstance(payload, dict):
+        raise ValueError("Expected a JSON object.")
+    return KnowledgeExtraction.model_validate(payload)
+
+
+def extract_knowledge(transcript: str, caption: str | None = None) -> KnowledgeExtraction:
     if not settings.anthropic_api_key:
         raise ExtractionError("ANTHROPIC_API_KEY is missing.")
 
     user_prompt = _build_extraction_user_prompt(transcript, caption)
-    first = _call_claude(user_prompt, force_json_retry=False)
-    for idx, raw in enumerate((first, _call_claude(user_prompt, force_json_retry=True))):
-        try:
-            payload = json.loads(raw)
-            if not isinstance(payload, list):
-                raise ValueError("Expected a JSON array.")
-            return [ToolExtraction.model_validate(item) for item in payload]
-        except Exception:
-            if idx == 1:
-                raise ExtractionError(f"Failed to parse extraction JSON. Raw output: {raw}")
-    return []
+    raw = _call_claude(user_prompt)
+    try:
+        return _parse_knowledge(raw)
+    except Exception:
+        pass
+    raw = _call_claude(user_prompt, force_json_retry=True)
+    try:
+        return _parse_knowledge(raw)
+    except Exception:
+        raise ExtractionError(f"Failed to parse extraction JSON. Raw output: {raw}") from None
+
+
+def extract_tools_from_transcript(transcript: str, caption: str | None = None) -> list[ToolExtraction]:
+    """Legacy helper: tools only."""
+    return extract_knowledge(transcript, caption).tools

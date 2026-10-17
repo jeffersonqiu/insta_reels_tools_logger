@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from main import app
+from models.schemas import KnowledgeExtraction
 from services import ingestion, processing
 from services.ingestion import InvalidReelUrl, canonicalize_reel_url
 
@@ -190,7 +191,10 @@ def _stub_pipeline(monkeypatch, download=None):
         processing, "download_reel_audio", download or (lambda url: ("/tmp/a.m4a", dt.date(2026, 1, 2), "cap"))
     )
     monkeypatch.setattr(processing, "transcribe_audio_file", lambda p: "transcript")
-    monkeypatch.setattr(processing, "extract_tools_from_transcript", lambda t, caption=None: [])
+    monkeypatch.setattr(
+        processing, "extract_knowledge", lambda t, caption=None: KnowledgeExtraction(title="t", summary="s")
+    )
+    monkeypatch.setattr(processing, "upsert_knowledge_item", lambda *a: "item-1")
     monkeypatch.setattr(processing, "upsert_tools", lambda tools, vid, d: ["t1"])
 
 

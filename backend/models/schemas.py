@@ -54,3 +54,22 @@ class VideoDetailResponse(BaseModel):
     caption: str | None = None
     raw_extraction: Any | None = None
     tools: list[ToolResponse] = Field(default_factory=list)
+
+
+class RepositoryRef(BaseModel):
+    name: str
+    url: str | None = None  # only set when the source actually provides one
+    description: str | None = None
+
+
+class KnowledgeExtraction(BaseModel):
+    """General knowledge extracted from a Reel. Every list may be empty; `tools` stays the legacy tool model."""
+
+    title: str
+    summary: str
+    key_ideas: list[str] = Field(default_factory=list)
+    tools: list[ToolExtraction] = Field(default_factory=list)
+    repositories: list[RepositoryRef] = Field(default_factory=list)
+    concepts: list[str] = Field(default_factory=list)
+    action_items: list[str] = Field(default_factory=list)
+    tags: list[str] = Field(default_factory=list)

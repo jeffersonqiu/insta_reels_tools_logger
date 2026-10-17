@@ -3,10 +3,10 @@ import logging
 from typing import Any
 
 from db.client import get_supabase
-from models.schemas import ToolExtraction
 from services.deduplicator import upsert_tools
 from services.downloader import download_reel_audio
-from services.extractor import extract_tools_from_transcript
+from services.extractor import extract_knowledge
+from services.knowledge import upsert_knowledge_item
 from services.transcriber import transcribe_audio_file
 
 logger = logging.getLogger(__name__)
@@ -49,11 +49,15 @@ def process_reel(video_id: str, canonical_url: str) -> dict[str, Any]:
         transcript = transcribe_audio_file(audio_path)
         supabase.table("videos").update({"transcript": transcript}).eq("id", video_id).execute()
 
-        tools: list[ToolExtraction] = extract_tools_from_transcript(transcript, caption=caption)
-        raw_extraction = [t.model_dump() for t in tools]
-        supabase.table("videos").update({"raw_extraction": raw_extraction}).eq("id", video_id).execute()
+        knowledge = extract_knowledge(transcript, caption=caption)
+        # videos.raw_extraction keeps its legacy shape (tool list); the full payload lives on knowledge_items.
+        raw_tools = [t.model_dump() for t in knowledge.tools]
+        supabase.table("videos").update({"raw_extraction": raw_tools}).eq("id", video_id).execute()
 
-        tool_ids = upsert_tools(tools, video_id, video_date or dt.date.today())
+        item_id = upsert_knowledge_item(supabase, video_id, canonical_url, knowledge)
+        logger.info("video_id=%s knowledge_item_id=%s saved", video_id, item_id)
+
+        tool_ids = upsert_tools(knowledge.tools, video_id, video_date or dt.date.today())
 
         supabase.table("videos").update(
             {"status": "completed", "completed_at": _now(), "processing_error": None}
