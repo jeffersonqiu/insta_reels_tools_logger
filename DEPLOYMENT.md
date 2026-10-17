@@ -89,7 +89,7 @@ curl -s "$BASE/api/diagnostics/assemblyai" | python3 -m json.tool
 curl -s -X POST "$BASE/api/webhook/reel" \
   -H "Content-Type: application/json" \
   -d '{"url":"https://www.instagram.com/reel/SHORTCODE/","secret":"YOUR_WEBHOOK_SECRET"}'
-# expect: {"status":"processing"} or already_processed
+# expect: {"status":"queued","video_id":...} or {"status":"already_exists",...}
 ```
 
 ---
@@ -139,7 +139,7 @@ Redeploy after adding the variable (or trigger a new deployment).
    - **Request Body**: JSON
    - **Add new field** `url` → map to **Shortcut Input** (the shared Reel link).
    - **Add new field** `secret` → type your **`WEBHOOK_SECRET`** (same as Railway).
-5. Add **Show Result** or **Show Notification** so you see `processing` / `already_processed` / errors.
+5. Add **Show Result** or **Show Notification** so you see `queued` / `already_exists` / errors.
 6. Shortcut details → **Show in Share Sheet** → enable.
 
 **Test:** Open Instagram → share a Reel → your shortcut → confirm `processing`, then check Supabase / Vercel feed.

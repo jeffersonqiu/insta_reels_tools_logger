@@ -235,8 +235,12 @@ curl -X POST http://localhost:8000/api/webhook/reel \
 
 Expected:
 
-- First time: `{"status":"processing"}`
-- Duplicate URL: `{"status":"already_processed"}`
+- First time: `{"status":"queued","video_id":"<uuid>"}` (a `videos` row with `status=queued` is written before processing starts)
+- Duplicate Reel (URLs are canonicalized, so `?igsh=…` variants match): `{"status":"already_exists","video_id":"<uuid>","processing_status":"queued|processing|completed|failed"}`
+- A previously `failed` Reel is re-queued when resubmitted (`{"status":"queued",…}`).
+- Non-Instagram-Reel URL: HTTP 400.
+
+Apply `backend/db/migrations/004_durable_ingestion.sql` in the Supabase SQL Editor **before** deploying this backend version.
 
 ---
 
