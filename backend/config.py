@@ -22,6 +22,8 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     anthropic_model: str = Field(default="claude-sonnet-4-6", min_length=1)
     telegram_bot_token: str = ""
+    telegram_allowed_user_ids: str = ""
+    public_app_url: str = ""
     webhook_secret: str = ""
     cors_allow_origins: str = "*"
     processing_mode: Literal["inline", "github_actions"] = "inline"
@@ -34,6 +36,7 @@ class Settings(BaseSettings):
         "anthropic_api_key",
         "anthropic_model",
         "telegram_bot_token",
+        "public_app_url",
         "webhook_secret",
         "instagram_cookies_b64",
         mode="before",
@@ -41,6 +44,16 @@ class Settings(BaseSettings):
     @classmethod
     def strip_secrets(cls, v: object) -> object:
         return _strip_secret(v)
+
+    @field_validator("telegram_allowed_user_ids")
+    @classmethod
+    def validate_telegram_users(cls, value: str) -> str:
+        if not value.strip():
+            return ""
+        ids = [part.strip() for part in value.split(",")]
+        if any(not part.isascii() or not part.isdigit() or int(part) <= 0 for part in ids):
+            raise ValueError("Use comma-separated positive Telegram user IDs.")
+        return ",".join(str(int(part)) for part in ids)
 
 
 settings = Settings()

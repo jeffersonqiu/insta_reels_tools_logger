@@ -310,3 +310,5 @@ Summary:
 - Optional tag governance for new tags.
 
 Project V2 Step 8 adds **Library** (`/library`) and knowledge-item details (`/items/:id`), with search, tag filters, source text, repositories, ideas, and action items. Existing Tools and Overview routes remain available. No new migration is required. See [Library behavior and verification](docs/step-8-library.md).
+
+Project V2 Step 9 adds private **Telegram Q&A**, `/recent`, source citations, and Reel intake through the same durable queue. Apply migration 006 before deployment, keep the bot token on Railway, then register the webhook and allow your own Telegram user ID. See [Telegram setup and verification](docs/step-9-telegram.md).

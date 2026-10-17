@@ -95,8 +95,9 @@ class _Q:
             keys = self.conflict.split(",")
             existing = next((r for r in rows if all(r.get(k) == self.payload.get(k) for k in keys)), None)
             if existing:
-                if not self.ignore_duplicates:
-                    existing.update(self.payload)
+                if self.ignore_duplicates:
+                    return _R([])
+                existing.update(self.payload)
                 return _R([dict(existing)])
             row = {"id": str(uuid.uuid4()), **self.payload}
             rows.append(row)
