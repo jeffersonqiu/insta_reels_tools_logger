@@ -103,7 +103,7 @@ From a Reel, open **Share** → **Share to…** → choose **Track AI Reels** (S
 ## 2) Supabase Setup (From Scratch)
 
 1. Create a Supabase project.
-2. In **SQL Editor**, run `backend/db/migrations/001_initial.sql`, then `002_processing_error.sql`, then `003_caption.sql` (adds `videos.caption` from Reel metadata for better tool names).
+2. In **SQL Editor**, run the migrations in order: `001_initial.sql`, `002_processing_error.sql`, `003_caption.sql`, `004_durable_ingestion.sql`, then `005_knowledge_items.sql` from `backend/db/migrations/`. Apply migration 005 **before** deploying the Step 6 backend; see [the Step 6 rollout instructions](docs/step-6-knowledge-items.md).
 3. Enable RLS on `videos`, `tools`, `video_tools`, `user_interactions`.
 4. **Personal-app pattern:** add a policy so the backend (using the **service role** key) can read/write all rows, e.g. name `service_role_all`, actions all, condition `auth.role() = 'service_role'`.
 5. Copy **Project URL** → `SUPABASE_URL`, **service role key** → `SUPABASE_SERVICE_KEY` in `backend/.env`.
@@ -241,6 +241,8 @@ Expected:
 - Non-Instagram-Reel URL: HTTP 400.
 
 Apply `backend/db/migrations/004_durable_ingestion.sql` in the Supabase SQL Editor **before** deploying this backend version.
+
+Project V2 Step 6 also requires `backend/db/migrations/005_knowledge_items.sql` before deployment. It adds knowledge items while preserving the Tools API. Read [the schema, endpoints, verification SQL, and safe rollout order](docs/step-6-knowledge-items.md).
 
 ---
 

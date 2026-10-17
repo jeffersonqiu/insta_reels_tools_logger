@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException, Query, Response
 from fastapi.encoders import jsonable_encoder
 
@@ -26,10 +28,10 @@ def list_items(response: Response, limit: int = Query(50, ge=1, le=200)):
 
 
 @router.get("/{item_id}")
-def get_item(item_id: str, response: Response):
+def get_item(item_id: UUID, response: Response):
     response.headers.update(_NO_STORE)
     supabase = get_supabase()
-    rows = supabase.table("knowledge_items").select("*").eq("id", item_id).limit(1).execute().data or []
+    rows = supabase.table("knowledge_items").select("*").eq("id", str(item_id)).limit(1).execute().data or []
     if not rows:
         raise HTTPException(status_code=404, detail="Item not found")
     item = rows[0]

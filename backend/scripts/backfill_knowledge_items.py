@@ -24,6 +24,8 @@ def main() -> None:
     ap.add_argument("--limit", type=int, default=5)
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
+    if args.limit < 1:
+        ap.error("--limit must be at least 1")
 
     sb = get_supabase()
     done = {r["video_id"] for r in sb.table("knowledge_items").select("video_id").execute().data or []}
