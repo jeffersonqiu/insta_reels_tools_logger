@@ -77,8 +77,10 @@ async def setup_telegram(payload: TelegramSetup):
                 "allowed_updates": ["message"], "max_connections": 1,
             })
         info = await bot_request("getWebhookInfo")
-    except TelegramError:
-        raise HTTPException(status_code=503, detail="Telegram request failed; check the bot token") from None
+    except TelegramError as exc:
+        # Transport errors contain only controlled messages/status codes, never
+        # raw provider exception text or credential-bearing request URLs.
+        raise HTTPException(status_code=503, detail=str(exc)) from None
     return {
         "username": bot["username"], "webhook_configured": bool(info.get("url")),
         "registered_expected_url": bool(target_url and info.get("url") == target_url),

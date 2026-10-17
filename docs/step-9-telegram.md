@@ -39,3 +39,5 @@ Use the existing FastAPI service on Railway; a separate polling service is unnec
 Run the complete backend suite with `uv run pytest`. Tests block external network access and mock Telegram/Anthropic/Supabase. They cover authorization before work, empty allowlists, private chat enforcement, claims and duplicate deliveries, queue reuse, bounded/no-cost requests, bot identity verification, webhook registration, unsafe links, unknown citations, redaction, and Unicode reply limits.
 
 To disable access immediately, clear `TELEGRAM_ALLOWED_USER_IDS` and deploy. Remove/rotate the bot token through BotFather only when needed. Existing Tools, knowledge items, Reel ingestion, frontend and GitHub worker are unaffected by the additional routes/table.
+
+Token validation rejects malformed values (including embedded whitespace) before opening an HTTP connection. Transport logging redacts the entire Telegram URL credential segment, including percent-encoded values; setup errors expose only controlled messages or HTTP status codes. If a token has appeared in logs, revoke/regenerate it in BotFather before retrying.

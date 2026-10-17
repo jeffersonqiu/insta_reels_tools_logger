@@ -239,3 +239,22 @@ def test_unicode_replies_split_without_loss(env, monkeypatch):
     assert ''.join(payload['text'] for payload in sent) == text
     assert all(len(payload['text'].encode('utf-16-le')) // 2 <= 4000 for payload in sent)
     assert all('parse_mode' not in payload and payload['link_preview_options']['is_disabled'] for payload in sent)
+
+
+@pytest.mark.parametrize('token', ['123:abc def', '123:abc\tdef', 'Token: 123:abcdef', '123:abc%20def'])
+def test_malformed_token_rejected_before_any_request(env, monkeypatch, token):
+    monkeypatch.setattr(settings, 'telegram_bot_token', token)
+    monkeypatch.setattr(telegram_api.httpx, 'AsyncClient', lambda **kwargs: pytest.fail('Malformed credentials must never reach HTTP transport'))
+    with pytest.raises(telegram_api.TelegramError, match='format is invalid'):
+        asyncio.run(telegram_api.bot_request('getMe'))
+
+
+def test_percent_encoded_token_is_also_redacted(env, monkeypatch, caplog):
+    from urllib.parse import quote
+    token = '123:abc def'
+    monkeypatch.setattr(settings, 'telegram_bot_token', token)
+    encoded = quote(token, safe=':')
+    with caplog.at_level(logging.INFO, logger='httpx'):
+        logging.getLogger('httpx').info('HTTP Request: POST https://api.telegram.org/bot%s/getMe', encoded)
+    assert token not in caplog.text and encoded not in caplog.text
+    assert '/bot[redacted]/getMe' in caplog.text
