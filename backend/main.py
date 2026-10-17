@@ -1,13 +1,16 @@
 import logging
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
+from db.client import get_supabase
 from routers.diagnostics import router as diagnostics_router
 from routers.metrics import router as metrics_router
 from routers.tools import router as tools_router
 from routers.videos import router as videos_router
 from routers.webhook import router as webhook_router
+
+logger = logging.getLogger(__name__)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -36,3 +39,14 @@ app.include_router(videos_router, prefix="/api")
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/health/db")
+def health_db():
+    try:
+        supabase = get_supabase()
+        supabase.table("videos").select("id").limit(1).execute()
+    except Exception:
+        logger.exception("Database health check failed")
+        raise HTTPException(status_code=503, detail="database unavailable") from None
+    return {"status": "ok", "database": "ok"}
