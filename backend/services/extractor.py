@@ -76,7 +76,7 @@ def _call_claude(user_prompt: str, force_json_retry: bool = False) -> str:
     client = Anthropic(api_key=settings.anthropic_api_key)
     retry_note = "\nIMPORTANT: return only the raw JSON object, nothing else." if force_json_retry else ""
     msg = client.messages.create(
-        model="claude-sonnet-4-20250514",
+        model=settings.anthropic_model,
         max_tokens=4000,
         system=SYSTEM_PROMPT + retry_note,
         messages=[{"role": "user", "content": user_prompt}],

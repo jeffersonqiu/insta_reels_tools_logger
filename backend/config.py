@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import field_validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     supabase_service_key: str = ""
     assemblyai_api_key: str = ""
     anthropic_api_key: str = ""
+    anthropic_model: str = Field(default="claude-sonnet-4-6", min_length=1)
     telegram_bot_token: str = ""
     webhook_secret: str = ""
     cors_allow_origins: str = "*"
@@ -31,6 +32,7 @@ class Settings(BaseSettings):
         "supabase_service_key",
         "assemblyai_api_key",
         "anthropic_api_key",
+        "anthropic_model",
         "telegram_bot_token",
         "webhook_secret",
         "instagram_cookies_b64",

@@ -54,7 +54,7 @@ Respond ONLY with a JSON object:
 }}
 """
     resp = client.messages.create(
-        model="claude-sonnet-4-20250514",
+        model=settings.anthropic_model,
         max_tokens=1200,
         messages=[{"role": "user", "content": prompt}],
     )

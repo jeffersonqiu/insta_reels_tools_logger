@@ -85,3 +85,9 @@ GET https://instareelstoolslogger-production.up.railway.app/api/diagnostics/proc
 ```
 
 AssemblyAI and the current transcript/caption knowledge extraction are retained. Vision/OCR, local transcription, Library UI, Telegram Q&A, MCP, and Markdown export are separate follow-up work.
+
+## Live rollout prerequisites
+
+Apply historical migrations 001–005, including `003_caption.sql`; the worker persists the Instagram caption before transcription. Migration 005 alone does not add that column.
+
+Knowledge extraction and tool comparisons share `ANTHROPIC_MODEL` (default `claude-sonnet-4-6`). Sonnet 4 (`claude-sonnet-4-20250514`) was retired on June 15, 2026 and returns HTTP 404. The default follows [Anthropic’s recommended replacement](https://platform.claude.com/docs/en/docs/about-claude/model-deprecations). To override it for Actions, set `ANTHROPIC_MODEL` in the worker environment as well as Railway. No override is required for the supported default.
