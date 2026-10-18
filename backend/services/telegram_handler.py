@@ -15,7 +15,7 @@ from services.telegram_api import reply
 
 logger = logging.getLogger(__name__)
 REEL_REGEX = re.compile(r"https?://(?:www\.)?instagram\.com/reel/[^\s<>]+", re.IGNORECASE)
-HELP = "Share an Instagram Reel to save it. Ask a question about your saved knowledge, or use:\n/ask <question> — answer with sources\n/recent — latest saved items\n/help — show this help\n\nAnswers use saved knowledge only. Each question is independent."
+HELP = "Share an Instagram Reel to save it, or ask me naturally about your whole saved repository: content, tools, transcripts and your notes.\n\nTry: What are the latest 3 things worth my time? Compare the agent tools I've saved. What should I try next?\n\n/ask <question> — answer with sources\n/recent — latest saved content\n/help — show this help\n\nRecommendations use saved knowledge and your tool statuses. Each question is independent."
 
 
 class TelegramUser(BaseModel):

@@ -191,16 +191,18 @@ def test_answer_has_verified_sources_and_one_bounded_call(env, monkeypatch):
     calls, options = fake_answer(monkeypatch, {'can_answer': True, 'answer': 'It connects AI roles.', 'source_ids': [ITEM_ID]})
     result = qa.answer_question('What is OpenFlow?')
     assert 'It connects AI roles.' in result and 'https://library.example/items/' + ITEM_ID in result
-    assert len(calls) == 1 and calls[0]['max_tokens'] == 900 and calls[0]['model'] == settings.anthropic_model
+    assert len(calls) == 1 and calls[0]['max_tokens'] == 2200 and calls[0]['model'] == settings.anthropic_model
     assert options[0]['max_retries'] == 0 and options[0]['timeout'] == 30
     assert len(calls[0]['messages'][0]['content']) < 20000
     assert 'untrusted data' in calls[0]['system']
 
 
-def test_no_relevant_sources_never_calls_llm(env, monkeypatch):
-    monkeypatch.setattr(qa, 'Anthropic', lambda **kwargs: pytest.fail('No relevant sources must not incur an LLM call'))
+def test_no_lexical_overlap_can_abstain_and_empty_repository_never_calls_llm(env, monkeypatch):
+    calls, _ = fake_answer(monkeypatch, {'can_answer': False})
     assert qa.answer_question('quantumgravity') == qa.NO_ANSWER
+    assert len(calls) == 1  # The model can interpret broad/semantic requests.
     env.db.tables['knowledge_items'] = []
+    monkeypatch.setattr(qa, 'Anthropic', lambda **kwargs: pytest.fail('An empty repository must not incur an LLM call'))
     assert qa.answer_question('OpenFlow') == qa.NO_ANSWER
 
 
