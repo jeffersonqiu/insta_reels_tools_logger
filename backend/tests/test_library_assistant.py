@@ -219,6 +219,29 @@ def test_provider_failure_sanitized_without_retry(env, monkeypatch):
     assert 'sentinel' not in str(error.value) and len(calls) == 1
 
 
+def test_insufficient_credits_classified_without_exposing_provider_payload(env, monkeypatch):
+    def fail(**kwargs):
+        error = RuntimeError('private-provider-sentinel')
+        error.body = {'error': {'message': 'Your credit balance is too low to access the Anthropic API.'}}
+        raise error
+    monkeypatch.setattr(qa, 'Anthropic', lambda **kwargs: SimpleNamespace(messages=SimpleNamespace(create=fail)))
+    monkeypatch.setattr(settings, 'anthropic_api_key', 'fake')
+    with pytest.raises(qa.AnswerCreditsError) as error:
+        qa.answer_question('OpenFlow')
+    assert str(error.value) == qa.NO_CREDITS and 'sentinel' not in str(error.value)
+
+
+def test_credit_failure_explained_in_telegram_without_retry_or_secret_echo(env, monkeypatch):
+    def fail(question):
+        raise qa.AnswerCreditsError('private-provider-sentinel')
+    monkeypatch.setattr(handler, 'answer_question', fail)
+    assert post(env, update('What should I learn next?')).status_code == 200
+    assert env.sent[0][1] == qa.NO_CREDITS and 'sentinel' not in env.sent[0][1]
+    assert env.db.tables['telegram_updates'][0]['error_type'] == 'AnswerCreditsError'
+    assert post(env, update('What should I learn next?')).json() == {'status': 'duplicate'}
+    assert len(env.sent) == 1
+
+
 def test_incomplete_answer_fails_closed(env, monkeypatch):
     monkeypatch.setattr(settings, 'anthropic_api_key', 'fake')
     monkeypatch.setattr(qa, 'Anthropic', lambda **kwargs: SimpleNamespace(messages=SimpleNamespace(create=lambda **kwargs: SimpleNamespace(content=[], stop_reason='max_tokens'))))

@@ -10,7 +10,7 @@ from config import settings
 from db.client import get_supabase
 from models.schemas import ReelWebhookRequest
 from routers.webhook import receive_reel
-from services.knowledge_qa import answer_question, recent_items
+from services.knowledge_qa import AnswerCreditsError, NO_CREDITS, answer_question, recent_items
 from services.telegram_api import reply
 
 logger = logging.getLogger(__name__)
@@ -111,6 +111,6 @@ async def process_update(update: TelegramUpdate, *, claimed: bool = False) -> No
         logger.warning("Telegram update failed update_id=%s error_type=%s", update.update_id, type(exc).__name__)
         try:
             await asyncio.to_thread(_finish, update.update_id, "failed", type(exc).__name__)
-            await reply(chat_id, "I couldn't complete that request. Please try sending a new message.")
+            await reply(chat_id, NO_CREDITS if isinstance(exc, AnswerCreditsError) else "I couldn't complete that request. Please try sending a new message.")
         except Exception:
             logger.warning("Telegram failure acknowledgement could not be delivered update_id=%s", update.update_id)

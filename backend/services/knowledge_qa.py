@@ -14,6 +14,7 @@ from db.client import get_supabase
 from services.knowledge_repository import load_repository
 
 NO_ANSWER = "I couldn't find enough information in your saved repository to answer that. I can compare saved content, recommend what to explore, or list recent saves."
+NO_CREDITS = "AI answering is unavailable because the Anthropic account has insufficient credits. Add credits to the account used by this app, then send your question again. /recent still lists your saved content."
 STOP_WORDS = set("a an the i me my you your we our what which who how why is are was were do does did can could would should please tell about of to for from in on and or it this that have has saved save show find".split())
 MAX_CALLS = 3
 CONTEXT_LIMIT = 24000
@@ -29,6 +30,10 @@ class AnswerFormatError(AnswerError):
 
 
 class AnswerProviderError(AnswerError):
+    pass
+
+
+class AnswerCreditsError(AnswerProviderError):
     pass
 
 
@@ -294,8 +299,13 @@ def answer_question(question: str) -> str:
                 tool_choice={"type": "tool", "name": ANSWER_TOOL["name"]} if last else {"type": "any", "disable_parallel_tool_use": True},
                 messages=messages,
             )
-        except Exception:
+        except Exception as exc:
             # SDK exception text can contain credentials and request objects.
+            body = getattr(exc, "body", None)
+            error = body.get("error", body) if isinstance(body, dict) else {}
+            message = str(error.get("message", "")).casefold() if isinstance(error, dict) else ""
+            if "credit balance is too low" in message or "insufficient credits" in message:
+                raise AnswerCreditsError(NO_CREDITS) from None
             raise AnswerProviderError("The answer provider is temporarily unavailable.") from None
         calls = [block for block in result.content if getattr(block, "type", None) == "tool_use"]
         if getattr(result, "stop_reason", None) == "max_tokens":
