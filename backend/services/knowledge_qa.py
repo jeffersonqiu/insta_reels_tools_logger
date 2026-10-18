@@ -40,10 +40,10 @@ class Recommendation(BaseModel):
 
 
 class GroundedAnswer(BaseModel):
-    can_answer: bool
-    answer: str = Field(default="", max_length=6000)
+    can_answer: bool = Field(description="True for a supported answer OR useful source-backed recommendations. False only when the saved evidence is insufficient; then leave answer and recommendations empty.")
+    answer: str = Field(default="", max_length=6000, description="Plain text for general questions. Leave empty when using structured recommendations; can_answer should still be true.")
     source_ids: list[str] = Field(default_factory=list, max_length=8)
-    recommendations: list[Recommendation] = Field(default_factory=list, max_length=8)
+    recommendations: list[Recommendation] = Field(default_factory=list, max_length=8, description="Supported saved choices to consider, with exact source IDs and proposed next steps. Nonempty recommendations mean can_answer=true. Use [] when abstaining or answering a general question.")
 
 
 def _all_items() -> list[dict]:
