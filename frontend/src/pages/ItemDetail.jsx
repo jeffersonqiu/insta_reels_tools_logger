@@ -56,8 +56,10 @@ function ItemDetail() {
         {back}
         <p className="mt-4 font-mono text-[11px] uppercase tracking-wider text-ink-faint">Instagram Reel · Saved {savedDate(item.created_at)}</p>
         <h1 className="mt-3 max-w-4xl font-display text-3xl font-bold leading-tight tracking-tight md:text-4xl">{item.title || 'Untitled Reel'}</h1>
+        <div className="mt-4 flex flex-wrap gap-3">{(item.topics || []).map((topic) => <Link key={topic.id} to={`/topics/${topic.id}`} className="text-sm text-accent hover:underline">{topic.name} →</Link>)}</div>
         <div className="mt-4 flex flex-wrap gap-2">{(item.tags || []).map((tag) => <span key={tag} className="rounded-md bg-accent-dim px-2.5 py-1 text-xs text-accent">{tag}</span>)}</div>
       </header>
+      {!!item.review_reasons?.length && <section className="rounded-2xl border border-accent/30 bg-elevated/90 p-5"><h2 className="font-display text-lg font-semibold">Needs review</h2><ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-ink-muted">{item.review_reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul></section>}
       <section className="rounded-2xl border border-accent/25 bg-elevated/90 p-5 shadow-card sm:p-6">
         <h2 className="font-display text-lg font-semibold">Summary</h2>
         <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-ink-muted">{item.summary || 'No summary saved.'}</p>

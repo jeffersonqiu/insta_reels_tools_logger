@@ -9,6 +9,7 @@ from routers.items import router as items_router
 from routers.metrics import router as metrics_router
 from routers.tools import router as tools_router
 from routers.telegram import router as telegram_router
+from routers.topics import router as topics_router
 from routers.videos import router as videos_router
 from routers.webhook import router as webhook_router
 
@@ -38,6 +39,7 @@ app.include_router(metrics_router, prefix="/api")
 app.include_router(videos_router, prefix="/api")
 app.include_router(items_router, prefix="/api")
 app.include_router(telegram_router, prefix="/api")
+app.include_router(topics_router, prefix="/api")
 
 
 @app.get("/health")

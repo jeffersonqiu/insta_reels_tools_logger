@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "topics": [
+    {"id":"agent-orchestration","name":"Agents & orchestration","description":"How agents divide work, coordinate roles and share context.","guide":"Start with the workflow you want to improve. Compare how these sources coordinate roles, then test the smallest useful agent setup on one real task.","match_tags":["agents","orchestration","multi-agent"],"match_phrases":["multi-agent","parallel agents","shared memory","orchestration","OpenFlow","RooFlow"]},
+    {"id":"coding-workflows","name":"Coding workflows & skills","description":"Planning, building, evaluating and resuming work with coding assistants.","guide":"Compare planning and execution loops. Pick one repeatable workflow, define a useful test or metric, and keep a short record of what helped.","match_tags":["coding","claude code","skills","evaluation"],"match_phrases":["plan-apply-unify","skill","benchmark","ideation","pause","resume","plan mode"]},
+    {"id":"integrations","name":"Integrations & interfaces","description":"Connecting assistants to software through CLIs, MCP and messaging.","guide":"Choose the integration around the task you need. Compare context use, access and ease of operation; treat source-specific performance numbers as claims to test.","match_tags":["integrations","mcp","cli"],"match_phrases":["MCP","CLI","channels","Dispatch","Telegram","Discord","context window"]},
+    {"id":"production-reliability","name":"Production reliability","description":"Monitoring, diagnosis, sandboxed fixes and review of production changes.","guide":"Trace the loop from detection to diagnosis, testing and human review. Choose one narrow failure mode before applying an automated recovery workflow.","match_tags":["observability","reliability","monitoring"],"match_phrases":["production","monitor","latency","self-fixing","reproduce the issue","sandbox"]},
+    {"id":"search-multimodal","name":"Search & multimodal","description":"Finding useful information across video and other non-text sources.","guide":"Start with a specific search task and a small sample of your own material. Check whether returned moments support the query before relying on them.","match_tags":["search","multimodal","embeddings"],"match_phrases":["SentrySearch","embedding","MP4","video search","dashcam"]}
+  ],
+  "overrides": {}
+}

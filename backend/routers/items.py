@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException, Query, Response
 from fastapi.encoders import jsonable_encoder
 
 from db.client import get_supabase
+from services.organization import annotate_item, organize_items
 
 router = APIRouter(prefix="/items", tags=["items"])
 
@@ -29,7 +30,7 @@ def list_items(
         .data
         or []
     )
-    return jsonable_encoder(rows)
+    return jsonable_encoder(organize_items(rows))
 
 
 @router.get("/{item_id}")
@@ -41,4 +42,4 @@ def get_item(item_id: UUID, response: Response):
         raise HTTPException(status_code=404, detail="Item not found")
     item = rows[0]
     videos = supabase.table("videos").select(_VIDEO_FIELDS).eq("id", item["video_id"]).limit(1).execute().data or []
-    return jsonable_encoder({"item": item, "video": videos[0] if videos else None})
+    return jsonable_encoder({"item": annotate_item(item), "video": videos[0] if videos else None})

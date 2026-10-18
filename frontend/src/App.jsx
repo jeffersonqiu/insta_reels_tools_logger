@@ -5,6 +5,7 @@ import Feed from './pages/Feed'
 import VideoDetail from './pages/VideoDetail'
 import Library from './pages/Library'
 import ItemDetail from './pages/ItemDetail'
+import Topics from './pages/Topics'
 
 function LogoMark({ className = 'h-9 w-9' }) {
   return (
@@ -48,6 +49,7 @@ function App() {
             </span>
           </Link>
           <nav className="flex flex-wrap gap-1 border-t border-stroke/60 pt-3 sm:border-t-0 sm:pt-0" aria-label="Main">
+            <NavLink to="/topics" className={navLinkClass}>Topics</NavLink>
             <NavLink to="/library" className={({ isActive }) => navLinkClass({ isActive: isActive || pathname.startsWith('/items/') })}>
               Library
             </NavLink>
@@ -67,6 +69,8 @@ function App() {
           <Route path="/videos/:id" element={<VideoDetail />} />
           <Route path="/library" element={<Library />} />
           <Route path="/items/:id" element={<ItemDetail />} />
+          <Route path="/topics" element={<Topics />} />
+          <Route path="/topics/:topicId" element={<Topics />} />
         </Routes>
       </main>
     </div>

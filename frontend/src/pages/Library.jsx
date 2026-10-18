@@ -71,6 +71,7 @@ function Library() {
   return (
     <section aria-label="Your library">
       <PageHeader eyebrow="Saved knowledge" title="Your library" subtitle="Ideas worth keeping. Revisit the takeaways, tools, and next steps from your saved Reels." />
+      <Link to="/topics" className="mb-5 inline-flex min-h-[44px] items-center text-sm text-accent hover:underline">Browse topic guides & weekly review queues →</Link>
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end">
         <div className="flex-1">
           <label htmlFor="library-search" className="mb-2 block text-sm text-ink-muted">Search your library</label>
@@ -115,6 +116,7 @@ function Library() {
                     </Link>
                   </h2>
                   <p className="mt-3 line-clamp-4 text-sm leading-relaxed text-ink-muted">{item.summary || 'Open this item to view its saved knowledge.'}</p>
+                  <div className="mt-3 flex flex-wrap gap-3">{(item.topics || []).map((topic) => <Link key={topic.id} to={`/topics/${topic.id}`} className="text-xs text-accent hover:underline">{topic.name}</Link>)}</div>
                   <div className="mt-4 flex flex-wrap gap-2">
                     {(item.tags || []).map((tag) => <span key={tag} className="rounded-md bg-accent-dim px-2 py-1 text-xs text-accent">{tag}</span>)}
                   </div>

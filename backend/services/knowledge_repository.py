@@ -1,6 +1,7 @@
 """Read-only view of the whole repository, including pre-V2 saved records."""
 
 from services.ingestion import InvalidReelUrl, canonicalize_reel_url
+from services.organization import annotate_item
 
 ITEM_FIELDS = "id,video_id,title,summary,key_ideas,repositories,concepts,action_items,tags,raw_extraction,source_url,created_at"
 VIDEO_FIELDS = "id,instagram_url,canonical_url,video_created_at,processed_at,status,transcript,caption,raw_extraction"
@@ -40,7 +41,8 @@ def _canonical(url: str) -> str:
 
 
 def load_repository(db) -> list[dict]:
-    items = _rows(db, "knowledge_items", ITEM_FIELDS)
+    items = [annotate_item(item) for item in _rows(db, "knowledge_items", ITEM_FIELDS)]
+    knowledge_by_video = {item.get("video_id"):item for item in items}
     videos = _rows(db, "videos", VIDEO_FIELDS)
     tools = _rows(db, "tools", TOOL_FIELDS)
     interactions = _rows(db, "user_interactions", "id,tool_id,status,notes")
@@ -117,6 +119,9 @@ def load_repository(db) -> list[dict]:
         linked.sort(key=lambda row: (row.get("processed_at") or "", row["id"]), reverse=True)
         source_video = linked[0] if linked else {}
         context = tool_context(tool)
+        linked_knowledge = [knowledge_by_video[video_id] for video_id in tool_videos.get(tool["id"], set()) if video_id in knowledge_by_video]
+        review_reasons = list(dict.fromkeys(reason for item in linked_knowledge for reason in item.get("review_reasons", [])))
+        topics = {topic["id"]:topic for item in linked_knowledge for topic in item.get("topics", [])}
         sources.append({
             "id": "tool:" + tool["id"], "kind": "tool", "title": tool.get("name") or "Unnamed tool",
             "summary": tool.get("functionality") or "", "key_ideas": [tool.get("problem_solved") or ""],
@@ -124,6 +129,7 @@ def load_repository(db) -> list[dict]:
             "saved_at": tool.get("first_seen_date") or "", "published_on": None,
             "source_url": source_video.get("canonical_url") or source_video.get("instagram_url") or "",
             "video_id": source_video.get("id"),
+            "review_reasons": review_reasons, "topics": list(topics.values()),
         })
     sources.sort(key=lambda row: (str(row.get("saved_at") or ""), row["id"]), reverse=True)
     return sources
