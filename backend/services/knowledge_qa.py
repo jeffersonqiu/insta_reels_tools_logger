@@ -32,10 +32,18 @@ class AnswerProviderError(AnswerError):
     pass
 
 
+class Recommendation(BaseModel):
+    source_id: str
+    takeaway: str = Field(min_length=1, max_length=700)
+    why: str = Field(min_length=1, max_length=600)
+    next_step: str = Field(min_length=1, max_length=400)
+
+
 class GroundedAnswer(BaseModel):
     can_answer: bool
     answer: str = Field(default="", max_length=6000)
     source_ids: list[str] = Field(default_factory=list, max_length=8)
+    recommendations: list[Recommendation] = Field(default_factory=list, max_length=8)
 
 
 def _all_items() -> list[dict]:
@@ -201,6 +209,8 @@ SYSTEM_PROMPT = (
     "facts, links, dates, source IDs, interests or personal history. You may reason and recommend, but label judgment "
     "and proposed actions as recommendations rather than source claims. Personalize using stored notes and statuses: "
     "usually favor to_explore over already implemented or not_interested for new learning recommendations. "
+    "Saving a tool does NOT mean the owner uses it. Only status=implemented supports a claim that they implemented it; "
+    "to_explore and mere mentions are not evidence of use. Phrase suggestions conditionally when experience is unknown. "
     "For 'latest 3 content worth my time', inspect the latest distinct CONTENT (not three tools from the same Reel), "
     "give up to three concrete choices with what it teaches, why it may be useful and one suggested next step. "
     "Say if fewer than requested have usable content. Latest means saved_at, unless explicitly asked for publication "
@@ -211,10 +221,45 @@ SYSTEM_PROMPT = (
     "Use search_library (with synonyms), list_library and read_sources when the catalogue is insufficient; all saved "
     "records are searchable. Excerpts are labeled; read further for details rather than guessing beyond them. "
     "Answer concisely in the user's language, plain text, normally under 350 words. Use numbered lists, without Markdown "
-    "bold markers, heading markers or horizontal rules (Telegram renders this as plain text). Return the final result through "
+    "bold markers, heading markers or horizontal rules (Telegram renders this as plain text). When recommending distinct "
+    "saved choices, fill recommendations with source_id, takeaway, why and next_step, and leave answer empty. The server "
+    "renders verified titles, dates and recent ordering. For other questions use answer and source_ids. Return the final result through "
     "answer_from_library with exact IDs of inspected sources. Every factual claim must be supported by those sources. "
     "No URLs in answer: the server appends verified links. You have at most three model turns, so retrieve efficiently."
 )
+
+
+def _recent_recommendation(question: str) -> bool:
+    text = question.casefold()
+    return bool(re.search(r"\b(latest|newest|most recent)\b", text) and re.search(r"\b(content|reels?|items?|saves|worth|recommend)\b", text))
+
+
+def _render_answer(parsed: GroundedAnswer, inspected: dict, *, recent: bool) -> str:
+    recommendations = list({rec.source_id: rec for rec in parsed.recommendations}.values())
+    ids = [rec.source_id for rec in recommendations] + parsed.source_ids
+    if not ids or any(key not in inspected for key in ids):
+        raise AnswerFormatError("Unsupported answer sources.")
+    if recent and not recommendations:
+        raise AnswerFormatError("Recent recommendations were incomplete.")
+    if recommendations:
+        if recent:
+            recommendations.sort(key=lambda rec: (str(inspected[rec.source_id].get("saved_at") or ""), rec.source_id), reverse=True)
+        parts = ["Recent saved content to consider (newest saves first):" if recent else "My recommendations from your saved repository:"]
+        ids = []
+        for index, rec in enumerate(recommendations, 1):
+            source = inspected[rec.source_id]
+            ids.append(rec.source_id)
+            label = "First seen" if source["kind"] == "tool" else "Saved"
+            date = str(source.get("saved_at") or "")[:10] or "unknown"
+            title = (source.get("title") or "Untitled source").replace("\n", " ")[:180]
+            parts.append(f"{index}. {title}\n{label}: {date}\n\nWhat it teaches: {rec.takeaway}\n\nWhy consider it: {rec.why}\n\nSuggested next step: {rec.next_step}")
+        answer = "\n\n".join(parts)
+    else:
+        answer = parsed.answer.strip()
+    answer = re.sub(r"https?://\S+", "", answer).strip()
+    if not answer:
+        raise AnswerFormatError("No answer text was returned.")
+    return answer + format_sources([inspected[key] for key in dict.fromkeys(ids)])
 
 
 def answer_question(question: str) -> str:
@@ -234,10 +279,15 @@ def answer_question(question: str) -> str:
     payload = {"question": question, "repository_overview": overview, "catalogue": catalogue if include_catalogue else [], "catalogue_complete": include_catalogue}
     messages = [{"role": "user", "content": json.dumps(payload, ensure_ascii=False, default=str)}]
     inspected = {row["id"]: row for row in sources} if include_catalogue else {}
+    recent = _recent_recommendation(question)
+    answer_tool = ANSWER_TOOL
+    if recent:
+        answer_tool = json.loads(json.dumps(ANSWER_TOOL))
+        answer_tool["input_schema"]["required"].append("recommendations")
     client = Anthropic(api_key=settings.anthropic_api_key, timeout=30, max_retries=0)
     for turn in range(MAX_CALLS):
         last = turn == MAX_CALLS - 1
-        tools = [ANSWER_TOOL] if last else READ_TOOLS + ([ANSWER_TOOL] if inspected else [])
+        tools = [answer_tool] if last else READ_TOOLS + ([answer_tool] if inspected else [])
         try:
             result = client.messages.create(
                 model=settings.anthropic_model, max_tokens=2200, system=SYSTEM_PROMPT, tools=tools,
@@ -254,12 +304,7 @@ def answer_question(question: str) -> str:
             parsed = _parse_answer(result)
             if not parsed.can_answer:
                 return NO_ANSWER
-            if not parsed.answer.strip() or not parsed.source_ids or any(key not in inspected for key in parsed.source_ids):
-                raise AnswerFormatError("Unsupported answer sources.")
-            answer = re.sub(r"https?://\S+", "", parsed.answer).strip()
-            if not answer:
-                raise AnswerFormatError("No answer text was returned.")
-            return answer + format_sources([inspected[key] for key in dict.fromkeys(parsed.source_ids)])
+            return _render_answer(parsed, inspected, recent=recent)
         if last or len(calls) != 1:
             raise AnswerFormatError("Unexpected library operation.")
         block = calls[0]

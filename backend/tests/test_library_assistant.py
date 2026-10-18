@@ -80,7 +80,7 @@ def test_recent_distinct_content_uses_save_not_publication_dates(env):
 
 def test_exact_natural_question_has_full_catalogue_without_keyword_gate(env, monkeypatch):
     env.db.tables['tools'] = [tool('older', name='OlderSandbox', functionality='Isolate untrusted generated code')]
-    calls, _ = fake_answer(monkeypatch, {'can_answer': True, 'answer': 'Start with this saved canvas.', 'source_ids': [ITEM_ID]})
+    calls, _ = fake_answer(monkeypatch, {'can_answer': True, 'recommendations': [{'source_id': ITEM_ID, 'takeaway': 'A saved canvas.', 'why': 'Try visual workflows.', 'next_step': 'Build a small pipeline.'}]})
     answer = qa.answer_question("what's the latest 3 content that worth I spend my time on")
     payload = json.loads(calls[0]['messages'][0]['content'])
     assert {row['id'] for row in payload['catalogue']} == {ITEM_ID, 'tool:older'}
@@ -140,7 +140,7 @@ def test_fenced_json_regression_accepted_without_second_paid_call(env, monkeypat
 
 def test_natural_question_webhook_completes_with_sources_and_duplicate_cost_is_zero(env, monkeypatch):
     monkeypatch.setattr(handler, 'answer_question', qa.answer_question)
-    calls, _ = fake_answer(monkeypatch, '```json\n' + json.dumps({'can_answer': True, 'answer': 'Try this saved canvas first.', 'source_ids': [ITEM_ID]}) + '\n```')
+    calls, _ = fake_answer(monkeypatch, '```json\n' + json.dumps({'can_answer': True, 'recommendations': [{'source_id': ITEM_ID, 'takeaway': 'A saved canvas.', 'why': 'Try visual workflows.', 'next_step': 'Build a small pipeline.'}]}) + '\n```')
     body = update("what's the latest 3 content that worth I spend my time on")
     assert post(env, body).json() == {'status': 'accepted'}
     assert env.db.tables['telegram_updates'][0]['status'] == 'completed'
@@ -154,6 +154,37 @@ def test_read_loop_cannot_exceed_three_model_calls(env, monkeypatch):
     with pytest.raises(qa.AnswerFormatError, match='Unexpected'):
         qa.answer_question('What should I explore?')
     assert len(calls) == 3 and calls[-1]['tools'] == [qa.ANSWER_TOOL]
+
+
+def test_recent_recommendations_use_server_dates_titles_and_chronological_order():
+    sources = {
+        'older': {**ITEM, 'kind': 'video', 'saved_at': '2026-03-27T00:00:00Z', 'title': 'Older saved content'},
+        'newer': {**ITEM, 'kind': 'video', 'saved_at': '2026-03-28T00:00:00Z', 'title': 'Newer saved content'},
+    }
+    recs = [{'source_id': key, 'takeaway': 'A useful pattern.', 'why': 'Could help.', 'next_step': 'Try a small example.'} for key in ['older', 'newer']]
+    parsed = qa.GroundedAnswer(can_answer=True, answer='Wrong invented chronological header', recommendations=recs)
+    answer = qa._render_answer(parsed, sources, recent=True)
+    assert answer.index('1. Newer saved content') < answer.index('2. Older saved content')
+    assert 'Saved: 2026-03-28' in answer and 'Saved: 2026-03-27' in answer
+    assert 'invented' not in answer
+    assert answer.index('[1] Newer saved content') < answer.index('[2] Older saved content')
+
+
+def test_recent_question_requires_structured_choices_and_verified_ids(env, monkeypatch):
+    fake_answer(monkeypatch, {'can_answer': True, 'answer': 'A date-ordered list.', 'source_ids': [ITEM_ID]})
+    with pytest.raises(qa.AnswerFormatError, match='incomplete'):
+        qa.answer_question('What are the latest three content items worth my time?')
+    parsed = qa.GroundedAnswer(can_answer=True, recommendations=[{'source_id': 'invented', 'takeaway': 'x', 'why': 'x', 'next_step': 'x'}])
+    with pytest.raises(qa.AnswerFormatError, match='Unsupported'):
+        qa._render_answer(parsed, {}, recent=True)
+
+
+def test_recent_question_can_abstain_without_fabricating_choices(env, monkeypatch):
+    calls, _ = fake_answer(monkeypatch, {'can_answer': False, 'recommendations': []})
+    assert qa.answer_question('Latest content about quantumgravity?') == qa.NO_ANSWER
+    schema = next(tool for tool in calls[0]['tools'] if tool['name'] == 'answer_from_library')['input_schema']
+    assert 'recommendations' in schema['required']
+    assert schema['properties']['recommendations'].get('minItems', 0) == 0
 
 
 def test_context_budget_and_transcript_cursor():
